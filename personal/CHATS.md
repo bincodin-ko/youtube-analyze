@@ -49,3 +49,5 @@ Q. 터미널이 자꾸 꺼졌다 켜졌다 하는 것 수정해 줄래?
 A. 진단: 앱은 꺼져 있었고 내 도구 호출엔 보이는 창 없음, 에이전트가 남긴 옛 코드 서버 8795·8796 종료. 언제 깜박이는지 사용자 확인 요청. 나머지 5건은 verify 조사 보고 후 승인 대기(HARD GATE). YouTube MCP는 yt-dlp 래퍼라 시간 정보가 빠져 앱엔 부적합 판정.
 Q. 다 승인(verify 계획·git init·완료 기준 4개) / 터미널 깜박임 시점은 모름, 알게 되면 말할게 → 할 일에서 빼줘
 A. 진행: git init·verify 구축 후 기능 4개 구현, 깜박임은 보류로 기록.
+Q. (코디네이터) headless verify.bat 만들기·데이터 경로 환경변수화·worktree 2개 동시 실행 증명
+A. paths.py로 VN_DATA_DIR·VN_COMFY_PORT 도입, verify.bat+verify/run.py(18단계) 완성, 메인 18/18(35초)·worktree 2개 동시 18/18(62초) 통과, worktree 정리, 커밋.

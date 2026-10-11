@@ -4,6 +4,15 @@
 
 ## 바뀐 점
 
+#### 2026-10-11 headless verify (verify.bat) · 데이터 경로 환경변수화
+##### 바뀐 점
+- backend/app/paths.py(새 파일): 데이터 폴더를 한 곳에서 정함 — 환경변수 `VN_DATA_DIR`, 없으면 기존 프로젝트/data. 왜: verify·worktree가 각자 데이터 폴더를 써야 동시 실행이 안전함(server.lock도 그 폴더 기준이라 자동으로 분리).
+- backend/app/db.py·main.py·chat.py·highlights.py·clips.py·combine.py·templates.py: 하드코딩된 `data/` 경로를 paths.py의 DATA/MEDIA로 바꿈(동작은 그대로, 환경변수 없으면 같은 경로).
+- backend/app/cartoon.py: ComfyUI 포트를 환경변수 `VN_COMFY_PORT`로 바꿀 수 있게(기본 8188).
+- verify.bat + verify/run.py(새 파일): 웹 빌드·린트 → 백엔드 자체 점검(files·scenes·transcript, 네트워크 없음)·임포트 → 실제 data에서 노트 3개를 .verify/data로 복사(원본은 읽기 전용) → 빈 포트 서버 → Playwright headless 9개 화면 시나리오 + 스크린샷(.verify/shots/) → .verify/summary.md, 실패 시 exit 1. AI 호출·쓰기 요청(POST 등)과 외부 주소는 막아 결정적으로 돈다. worktree에 node_modules가 없으면 그 안에서 npm ci, .venv는 uv가 그 안에 만듦. 시험 데이터 원본은 `VN_SEED_DIR`(기본: 메인 저장소의 data/).
+##### 되돌리기
+- git: `git revert 98cccb6` (커밋 하나에 위 변경 전부).
+
 #### 2026-10-11 채팅 콘솔 깜박임 제거 · 글자 선택/복사 · 채팅 복사 버튼
 ##### 바뀐 점
 - backend/app/__init__.py: Windows에서 모든 subprocess에 CREATE_NO_WINDOW를 붙임. 왜: 채팅 때마다 claude 콘솔 창이 깜박였음. 대조 시험: 패치 없을 때 cmd.exe 창이 잡힘 / 패치 후 채팅 중 새 창 0개.
