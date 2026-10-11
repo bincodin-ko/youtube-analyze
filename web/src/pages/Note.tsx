@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Check, ChevronDown, ChevronsLeft, ChevronsRight, FileText, Lightbulb, List, Loader2, PanelLeft, Search, ExternalLink } from 'lucide-react'
+import { Check, ChevronDown, ChevronsLeft, ChevronsRight, FileText, Lightbulb, List, Maximize2, Minimize2, Loader2, PanelLeft, Search, ExternalLink } from 'lucide-react'
 import Lightbox from 'yet-another-react-lightbox'
 import 'yet-another-react-lightbox/styles.css'
 import { fmtTime, getNote, getTranslation, sceneSrc, translateNote, type Note, type Trans } from '../api'
@@ -14,9 +14,11 @@ import { LengthMenu, RichT, TermList, loadStyleReport, useTerms, type Report, ty
 import Clips from '../components/Clips'
 import Mindmap, { getMindmap, makeMindmap, type Level } from '../components/Mindmap'
 import { ExpandBody, ExpandMenu, useExpand } from '../components/Expand'
+import Stage, { type Ctl } from '../components/Stage'
 
 // ---- YouTube IFrame 플레이어 ----
-type YTPlayer = { seekTo(s: number, a: boolean): void; playVideo(): void; getCurrentTime(): number; destroy(): void }
+type YTPlayer = { seekTo(s: number, a: boolean): void; playVideo(): void; pauseVideo(): void; getPlayerState(): number; getCurrentTime(): number; destroy(): void
+  getPlaybackRate(): number; setPlaybackRate(r: number): void; getAvailablePlaybackRates(): number[] }
 type YTGlobal = { Player: new (el: HTMLElement, o: object) => YTPlayer }
 declare global { interface Window { YT?: YTGlobal; onYouTubeIframeAPIReady?: () => void } }
 
@@ -60,7 +62,7 @@ function usePlayer(videoId: string | undefined, onTime: (t: number) => void) {
     const p = player.current
     if (p?.seekTo) { p.seekTo(t, true); p.playVideo(); onTime(t) } else pending.current = t
   }, [onTime])
-  return { host, seek }
+  return { host, seek, player }
 }
 
 // ---- 처리 중 4단계 ----
@@ -258,7 +260,19 @@ export default function NotePage() {
   const local = note?.kind === 'audio' || note?.kind === 'localvideo'  // 내 파일: HTML5 재생
   const media = useRef<HTMLMediaElement>(null)
   const mediaSeek = useCallback((t: number) => { const m = media.current; if (m) { m.currentTime = t; m.play().catch(() => {}); setTime(t) } }, [])
-  const { host, seek: ytSeek } = usePlayer(art || local ? undefined : note?.video_id, setTime)
+  const { host, seek: ytSeek, player } = usePlayer(art || local ? undefined : note?.video_id, setTime)
+  // 크게 보기(localStorage 유지) · 영상 자리표시자와 리포트 영역 ref (Stage가 따라다님)
+  const [big, setBig] = useState(() => { try { return localStorage.getItem('vn-big') === '1' } catch { return false } })
+  const toggleBig = () => setBig((b) => { try { localStorage.setItem('vn-big', b ? '0' : '1') } catch { /* 저장 불가 */ } return !b })
+  useEffect(() => { if (!big) return; const p = left; setLeft(false); return () => setLeft(p) }, [big]) // eslint-disable-line react-hooks/exhaustive-deps -- 크게 보기 동안 왼쪽 열 접기
+  const leftSlot = useRef<HTMLDivElement>(null), centerSlot = useRef<HTMLDivElement>(null), reportSec = useRef<HTMLElement>(null)
+  const ctl = useMemo<Ctl>(() => ({
+    get: () => media.current?.playbackRate ?? player.current?.getPlaybackRate?.() ?? 1,
+    set: (n) => { (window.__vnRate ??= []).push(n); if (media.current) media.current.playbackRate = n; else player.current?.setPlaybackRate?.(n) },
+    max: () => media.current ? 2 : Math.min(2, Math.max(...(player.current?.getAvailablePlaybackRates?.() ?? [2]))),
+    toggle: () => { const m = media.current; if (m) { if (m.paused) m.play().catch(() => {}); else m.pause() } else if (player.current?.getPlayerState?.() === 1) player.current.pauseVideo(); else player.current?.playVideo?.() },
+    pause: () => { media.current?.pause(); player.current?.pauseVideo?.() },
+  }), [player])
   // 웹 글: 출처 [n] 클릭 → 원문 패널을 펴고 그 문단으로 스크롤 + 잠깐 강조 (transcript[n].start = 문단 번호)
   const [hl, setHl] = useState<number | null>(null)
   const [srcOpen, setSrcOpen] = useState(true)
@@ -281,9 +295,14 @@ export default function NotePage() {
   const r = shown
   const date = note.upload_date.split('-').map(Number)
 
+  const stage = !art && note.kind !== 'audio' // 영상이 있는 노트: 크게 보기·PIP·2배속
+  const mediaProps = { ref: media as never, src: `/media/${note.id}/source.${note.url.split('.').pop()}`, controls: true, preload: 'metadata', onTimeUpdate: (e: React.SyntheticEvent<HTMLMediaElement>) => setTime(e.currentTarget.currentTime) }
   const iconBtn = 'grid place-items-center size-9 rounded-lg hover:bg-subtle text-soft'
   return (
     <div className="flex flex-col h-screen">
+      {stage && <Stage ctl={ctl} left={leftSlot} center={centerSlot} section={reportSec} big={big}>
+        {local ? <video {...mediaProps} className="size-full" /> : <div ref={host} className="size-full [&_iframe]:size-full" />}
+      </Stage>}
       <div className="min-[1100px]:hidden flex h-11 border-b border-line shrink-0">
         {([['video', '영상 · 스크립트'], ['report', '리포트'], ['chat', '채팅']] as const).map(([k, l]) => (
           <button key={k} onClick={() => setTab(k)} className={`flex-1 text-[15px] font-semibold border-b-2 ${tab === k ? 'border-fg' : 'border-transparent text-muted'}`}>{l}</button>
@@ -296,19 +315,18 @@ export default function NotePage() {
             <button onClick={() => nav('/')} className={iconBtn + ' border border-line'} title="홈"><PanelLeft size={18} strokeWidth={1.5} /></button>
             <button onClick={() => nav('/new')} className="h-8 px-3.5 rounded-full bg-fg text-bg text-[14px] font-semibold">새로 만들기</button>
             <List size={19} className="text-muted ml-2" strokeWidth={1.5} />
-            <button onClick={() => setLeft(false)} className="ml-auto hidden min-[1100px]:grid place-items-center size-8 text-soft" title="접기"><ChevronsLeft size={18} /></button>
+            {stage && <button onClick={toggleBig} aria-label="크게 보기" title="크게 보기" className="ml-auto hidden min-[1100px]:grid place-items-center size-8 rounded-lg border border-line text-soft hover:bg-subtle"><Maximize2 size={14} /></button>}
+            <button onClick={() => setLeft(false)} className={`${stage ? '' : 'ml-auto '}hidden min-[1100px]:grid place-items-center size-8 text-soft`} title="접기"><ChevronsLeft size={18} /></button>
           </div>
           {art ? <ArticlePanel note={note} hl={hl} open={srcOpen} setOpen={setSrcOpen} /> : <>
-          {local ? (() => {
-            const p = { ref: media as never, src: `/media/${note.id}/source.${note.url.split('.').pop()}`, controls: true, preload: 'metadata', onTimeUpdate: (e: React.SyntheticEvent<HTMLMediaElement>) => setTime(e.currentTarget.currentTime) }
-            return note.kind === 'audio' ? <audio {...p} className="w-full px-3 h-14 shrink-0" /> : <video {...p} className="aspect-video w-full bg-black shrink-0" />
-          })() : <div ref={host} className="aspect-video w-full bg-black shrink-0 [&_iframe]:size-full" />}
+          {note.kind === 'audio' ? <audio {...mediaProps} className="w-full px-3 h-14 shrink-0" /> : <div ref={leftSlot} className="aspect-video w-full bg-black shrink-0" />}
           <div className="flex items-center gap-3 px-4 h-[64px] shrink-0">
             {note.channel && <span className="grid place-items-center size-10 rounded-full bg-subtle text-[15px] font-bold shrink-0">{note.channel.slice(0, 1)}</span>}
             <div className="min-w-0 leading-tight">
               <p className="text-[14px] truncate">{note.channel}</p>
               {note.upload_date && <p className="text-[13px] text-muted mt-0.5">{date[0]}. {date[1]}. {date[2]}.</p>}
             </div>
+            {stage && <button onClick={toggleBig} className="ml-auto hidden min-[1100px]:flex items-center gap-1 h-8 px-2.5 shrink-0 whitespace-nowrap rounded-lg border border-line text-[13px] text-soft hover:bg-subtle"><Maximize2 size={14} />크게 보기</button>}
           </div>
           {!local && <Clips videoId={note.video_id} seek={seek} />}
           <Script note={note} time={time} seek={seek} />
@@ -316,7 +334,7 @@ export default function NotePage() {
         </section>
 
         {/* 가운데 리포트 */}
-        <section className={`${tab === 'report' ? 'block' : 'hidden'} min-[1100px]:block @container flex-1 min-w-0 overflow-y-auto scroll-thin`}>
+        <section ref={reportSec} className={`${tab === 'report' ? 'block' : 'hidden'} min-[1100px]:block @container flex-1 min-w-0 overflow-y-auto scroll-thin`}>
           <div className="sticky top-0 z-10 bg-bg flex items-center gap-1 h-12 px-3 border-b border-line">
             {!left && <button onClick={() => setLeft(true)} className={iconBtn + ' hidden min-[1100px]:grid'} title="펼치기"><ChevronsRight size={18} /></button>}
             <div className="flex rounded-lg border border-line overflow-hidden text-[14px] mr-1">
@@ -333,6 +351,10 @@ export default function NotePage() {
               {!right && <button onClick={() => setRight(true)} className={iconBtn + ' hidden min-[1100px]:grid'} title="펼치기"><ChevronsLeft size={18} /></button>}
             </div>
           </div>
+          {big && stage && <div className="hidden min-[1100px]:block max-w-[960px] mx-auto px-5 pt-4">
+            <div ref={centerSlot} className="aspect-video w-full bg-black" />
+            <div className="flex justify-end pt-2"><button onClick={toggleBig} className="flex items-center gap-1 h-8 px-2.5 rounded-lg border border-line text-[13px] text-soft hover:bg-subtle"><Minimize2 size={14} />작게 보기</button></div>
+          </div>}
           <div data-report className="max-w-[560px] mx-auto px-5 min-[1100px]:px-[60px] pb-24">
             {styleErr && <p className="mt-4 text-[14px] text-muted">{styleErr}</p>}
             {note.status !== 'done' || !r ? (

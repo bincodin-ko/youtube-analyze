@@ -157,6 +157,41 @@ def sc_dark(pg, ex):
     ex(pg.locator("[data-report] h1").first).to_be_visible()
 
 
+# ---- 영상 크게 보기·PIP·꾹 누르기 2배속 (유튜브는 차단돼 iframe이 비므로 window.__vnRate 기록과 data-fast로 확인) ----
+def _box(pg, sel):
+    pg.wait_for_function("s => { const e = document.querySelector(s); return e && e.getBoundingClientRect().width > 0 }", arg=sel)
+    return pg.locator(sel).first.bounding_box()
+def sc_big(pg, ex):
+    pg.get_by_role("button", name="크게 보기").first.click()
+    pg.wait_for_function("document.querySelector('[data-stage]').getBoundingClientRect().width >= 800")
+    b = _box(pg, "[data-stage]"); h = pg.locator("[data-report] h1").first
+    ex(h).to_be_visible()
+    assert b["width"] >= 800 and h.bounding_box()["y"] >= b["y"] + b["height"] - 1, f"크게 보기 폭/리포트 위치 이상: {b}"
+def sc_pip(pg, ex):
+    pg.get_by_role("button", name="크게 보기").first.click()
+    pg.wait_for_function("document.querySelector('[data-stage]').getBoundingClientRect().width >= 800")
+    pg.evaluate("document.querySelector('section.overflow-y-auto').scrollTop = 900")
+    ex(pg.locator("[data-stage]")).to_have_attribute("data-pip", "1")
+    pg.wait_for_timeout(300); b = pg.locator("[data-stage]").bounding_box()
+    assert b["x"] >= 0 and b["y"] >= 0 and b["x"] + b["width"] <= 1440 and b["y"] + b["height"] <= 900, f"PIP 화면 밖: {b}"
+    c = pg.get_by_placeholder("무엇이든 물어보세요").bounding_box()
+    assert b["x"] + b["width"] <= c["x"] or b["y"] + b["height"] <= c["y"], f"PIP가 채팅 입력창을 가림: {b} {c}"
+def sc_hold2x(pg, ex):
+    st = pg.locator("[data-stage]"); _box(pg, "[data-stage]")
+    pg.keyboard.down("Space"); pg.wait_for_timeout(600)
+    ex(st).to_have_attribute("data-fast", "2"); ex(pg.locator("[data-stage-badge]")).to_contain_text("2배속")
+    assert 2 in pg.evaluate("window.__vnRate"), "setPlaybackRate(2) 기록 없음"
+    pg.keyboard.up("Space")
+    ex(st).to_have_attribute("data-fast", "0"); assert pg.evaluate("window.__vnRate").pop() == 1, "속도 복귀 안 됨"
+    box = pg.locator("[data-stage-cover]").bounding_box()  # 마우스 꾹 누르기도 같은 동작
+    pg.mouse.move(box["x"] + 50, box["y"] + 50); pg.mouse.down(); pg.wait_for_timeout(700)
+    ex(st).to_have_attribute("data-fast", "2"); pg.mouse.up(); ex(st).to_have_attribute("data-fast", "0")
+def sc_space_input(pg, ex):
+    pg.get_by_placeholder("무엇이든 물어보세요").click(); pg.keyboard.down("Space"); pg.wait_for_timeout(600)
+    ex(pg.locator("[data-stage]")).to_have_attribute("data-fast", "0"); pg.keyboard.up("Space")
+    assert not pg.evaluate("window.__vnRate || []"), "입력창 포커스인데 속도가 바뀜"
+
+
 SCENARIOS = [
     ("home", "/", 1440, False, sc_home),
     ("library", "/library", 1440, False, sc_library),
@@ -170,6 +205,10 @@ SCENARIOS = [
     ("new_yt_links", "/new", 1440, False, sc_yt_links),
     ("chat_time_off", f"/note/{VIDEO}", 1440, False, sc_chat_time_off),
     ("chat_time_on", f"/note/{VIDEO}", 1440, False, sc_chat_time_on),
+    ("player_big", f"/note/{VIDEO}", 1440, False, sc_big),
+    ("player_pip", f"/note/{VIDEO}", 1440, False, sc_pip),
+    ("player_hold2x", f"/note/{VIDEO}", 1440, False, sc_hold2x),
+    ("player_space_input", f"/note/{VIDEO}", 1440, False, sc_space_input),
 ]
 
 
