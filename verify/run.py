@@ -191,6 +191,23 @@ def sc_space_input(pg, ex):
     ex(pg.locator("[data-stage]")).to_have_attribute("data-fast", "0"); pg.keyboard.up("Space")
     assert not pg.evaluate("window.__vnRate || []"), "입력창 포커스인데 속도가 바뀜"
 
+def sc_real2x(pg, ex):  # --online: 실제 유튜브 재생 시간이 꾹 누르는 동안 2배로 흐르는지(iframe 안 video를 직접 읽음)
+    pg.get_by_role("button", name="크게 보기").first.click()
+    fr = pg.frame_locator("[data-stage] iframe").first
+    v = fr.locator("video"); v.wait_for(state="attached", timeout=30000)
+    pg.locator("[data-stage] iframe").first.evaluate("f => f.contentWindow.postMessage(JSON.stringify({event: 'command', func: 'playVideo', args: []}), '*')")  # 유튜브 임베드 공식 명령으로 재생
+    v.evaluate("v => { v.muted = true; v.play().catch(() => {}) }")  # play() 약속을 기다리지 않음(광고·차단 시 영원히 대기)
+    pg.wait_for_timeout(3000)  # 광고·버퍼링 여유
+    t = lambda: v.evaluate("v => v.currentTime")
+    a = t(); pg.wait_for_timeout(3000); b = t()
+    pg.evaluate("document.activeElement && document.activeElement.blur()"); pg.keyboard.down("Space"); pg.wait_for_timeout(3000); c = t(); pg.keyboard.up("Space")
+    pg.wait_for_timeout(500); rate = v.evaluate("v => v.playbackRate")
+    assert b - a > 2, f"1배속 재생 안 됨: 3초 동안 {b - a:.2f}초"
+    assert c - b > 1.6 * (b - a), f"2배속 안 됨: 1배속 {b - a:.2f}초 / 누르는 동안 {c - b:.2f}초"
+    assert rate == 1, f"떼고 나서 속도 {rate}"
+
+
+ONLINE = "--online" in sys.argv  # 실제 유튜브 접속이 필요한 시험(인터넷 상태에 따라 실패할 수 있어 기본에서 뺌)
 
 SCENARIOS = [
     ("home", "/", 1440, False, sc_home),
@@ -209,7 +226,7 @@ SCENARIOS = [
     ("player_pip", f"/note/{VIDEO}", 1440, False, sc_pip),
     ("player_hold2x", f"/note/{VIDEO}", 1440, False, sc_hold2x),
     ("player_space_input", f"/note/{VIDEO}", 1440, False, sc_space_input),
-]
+] + ([("player_real_2x", f"/note/{VIDEO}", 1440, False, sc_real2x)] if ONLINE else [])
 
 
 class SkipCheck(Exception):
@@ -227,9 +244,9 @@ def run_ui(base):
         for name, path, w, dark, fn in SCENARIOS:
             blocked, errs = [], []
 
-            def route(r, blocked=blocked):
+            def route(r, *, blocked=blocked, online=name == "player_real_2x"):  # 키워드 전용: Playwright가 2번째 인자로 request를 넘김
                 u = urlparse(r.request.url)
-                if u.hostname != "127.0.0.1":
+                if u.hostname != "127.0.0.1" and not online:
                     return r.abort()  # 외부(유튜브 등) 차단 → 결정적
                 if u.path.startswith("/api/") and r.request.method != "GET":
                     blocked.append(f"{r.request.method} {u.path}"); return r.abort()  # AI·쓰기 동작 금지
