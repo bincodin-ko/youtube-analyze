@@ -1,0 +1,231 @@
+"""영상노트 verify: 빌드·린트 → 백엔드 자체 점검 → 시험 데이터 복사 → 빈 포트 서버 → Playwright headless 화면 시나리오.
+결과 .verify/summary.md + .verify/shots/*.png, 하나라도 실패하면 exit 1. 실제 data/는 읽기만 한다.
+실행: verify.bat (= uv run --project backend python verify/run.py)"""
+import os, shutil, socket, sqlite3, subprocess, sys, time, urllib.request
+from pathlib import Path
+from urllib.parse import urlparse
+
+ROOT = Path(__file__).resolve().parents[1]
+V = ROOT / ".verify"
+DATA, SHOTS = V / "data", V / "shots"
+VIDEO, ARTICLE = "78f1gpZXz4k-1791302454", "a24a0876c78-1791464214"
+SEED_IDS = os.environ.get("VN_SEED_IDS", f"{VIDEO},{ARTICLE},FlKHoxHe2O0-1791460989").split(",")
+WIN = os.name == "nt"
+NOWIN = subprocess.CREATE_NO_WINDOW if WIN else 0
+results: list[tuple[str, bool, str]] = []  # (이름, 통과, 이유)
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
+
+def seed_dir() -> Path:
+    # 원본: VN_SEED_DIR, 없으면 메인 저장소(worktree의 공통 .git 옆)의 data/
+    if os.environ.get("VN_SEED_DIR"):
+        return Path(os.environ["VN_SEED_DIR"])
+    try:
+        g = subprocess.run(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"], cwd=ROOT,
+                           capture_output=True, text=True, check=True).stdout.strip()
+        return Path(g).parent / "data"
+    except Exception:
+        return ROOT / "data"
+
+
+def step(name, fn):
+    t = time.time()
+    try:
+        fn(); results.append((name, True, f"{time.time() - t:.1f}s"))
+    except Exception as e:
+        results.append((name, False, f"{type(e).__name__}: {str(e).strip()[-400:]}"))
+    print(("PASS " if results[-1][1] else "FAIL ") + name + " — " + results[-1][2], flush=True)
+
+
+def sh(cmd, cwd=ROOT, env=None):
+    r = subprocess.run(cmd, cwd=cwd, env=env, capture_output=True, text=True, encoding="utf-8", errors="replace",
+                       shell=WIN and cmd[0] == "npm", creationflags=NOWIN)
+    if r.returncode:
+        raise RuntimeError((r.stdout + r.stderr)[-1500:])
+
+
+# ---- 1. 웹 빌드·린트 (worktree에 node_modules가 없으면 그 안에서 npm ci) ----
+def web_deps():
+    if not (ROOT / "web" / "node_modules").exists():
+        sh(["npm", "ci", "--no-audit", "--no-fund"], ROOT / "web")
+
+
+# ---- 2. 백엔드: 네트워크 없이 되는 자체 점검 + 임포트(시험 데이터 폴더 기준) ----
+def env_data():
+    return {**os.environ, "VN_DATA_DIR": str(DATA), "PYTHONIOENCODING": "utf-8"}
+
+
+def self_check(mod):
+    return lambda: sh([sys.executable, "-m", f"app.{mod}"], ROOT / "backend", env_data())
+
+
+# ---- 3. 시험 데이터: 원본 DB를 읽기 전용으로 복사 → 고른 노트만 남김 + 미디어 복사 ----
+def seed():
+    src = seed_dir()
+    if not (src / "notes.db").exists():
+        raise FileNotFoundError(f"원본 DB 없음: {src / 'notes.db'} (VN_SEED_DIR로 지정)")
+    shutil.rmtree(DATA, ignore_errors=True); (DATA / "media").mkdir(parents=True)
+    with sqlite3.connect(f"file:{src / 'notes.db'}?mode=ro", uri=True) as s, sqlite3.connect(DATA / "notes.db") as d:
+        s.backup(d)
+    with sqlite3.connect(DATA / "notes.db") as d:
+        q = ",".join("?" * len(SEED_IDS))
+        d.execute(f"DELETE FROM notes WHERE id NOT IN ({q})", SEED_IDS)
+        d.execute("UPDATE notes SET status='done' WHERE status='processing'")  # 서버가 이어서 처리(AI 호출)하지 않게
+        n = d.execute("SELECT count(*) FROM notes").fetchone()[0]
+    d.close()
+    if n != len(SEED_IDS):
+        raise RuntimeError(f"시험 노트 {n}/{len(SEED_IDS)}개만 찾음")
+    for nid in SEED_IDS:
+        if (src / "media" / nid).exists():
+            shutil.copytree(src / "media" / nid, DATA / "media" / nid)
+        t = DATA / "media" / nid / "terms.json"
+        t.parent.mkdir(exist_ok=True)
+        if not t.exists():
+            t.write_text("[]", encoding="utf-8")  # 없으면 서버가 용어 풀이를 AI로 만들려 함 → 결정적이게 빈 목록
+    if (src / "templates.json").exists():
+        shutil.copy(src / "templates.json", DATA)
+
+
+# ---- 4. 서버: 빈 포트 + 시작한 PID만 종료 ----
+def free_port():
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0)); return s.getsockname()[1]
+
+
+def start_server():
+    port = free_port()
+    log = open(V / "server.log", "w", encoding="utf-8")
+    p = subprocess.Popen([sys.executable, "-m", "uvicorn", "app.main:app", "--app-dir", "backend", "--host", "127.0.0.1",
+                          "--port", str(port)], cwd=ROOT, env=env_data(), stdout=log, stderr=subprocess.STDOUT, creationflags=NOWIN)
+    base = f"http://127.0.0.1:{port}"
+    for _ in range(120):
+        if p.poll() is not None:
+            raise RuntimeError("서버가 바로 꺼짐 — .verify/server.log 참고")
+        try:
+            urllib.request.urlopen(base + "/api/notes", timeout=2); return p, base
+        except OSError:
+            time.sleep(0.5)
+    p.terminate(); raise TimeoutError("서버 60초 안에 안 뜸")
+
+
+# ---- 5. 화면 시나리오: 여기 목록에 한 줄 추가하면 끝. (이름, 주소, 폭, 다크, 점검 함수) ----
+def sc_home(pg, ex): ex(pg.get_by_text("최근 노트")).to_be_visible()
+def sc_library(pg, ex):
+    ex(pg.get_by_text("내 노트", exact=True)).to_be_visible()
+    ex(pg.locator(f'a[href*="/note/{VIDEO}"]').first).to_be_visible()
+def sc_new_yt(pg, ex):
+    pg.get_by_role("button", name="유튜브").click()
+    ex(pg.get_by_placeholder("https://youtube.com/watch?v=abc")).to_be_visible()
+def sc_new_web(pg, ex):
+    pg.get_by_role("button", name="웹사이트").click()
+    ex(pg.get_by_placeholder("https://...", exact=True)).to_be_visible()
+def sc_note(pg, ex):
+    ex(pg.locator("[data-report] h1").first).to_be_visible()  # 리포트
+    ex(pg.get_by_role("button", name="스크립트", exact=True)).to_be_visible()  # 스크립트 패널
+    ex(pg.get_by_placeholder("무엇이든 물어보세요")).to_be_visible()  # 채팅 패널
+def sc_article(pg, ex): ex(pg.locator("[data-report] h1").first).to_be_visible()
+def sc_mindmap(pg, ex):
+    if not (DATA / "media" / VIDEO / "mindmap_normal.md").exists():
+        raise SkipCheck("캐시된 mindmap_normal.md 없음")
+    pg.get_by_role("button", name="확장", exact=True).click()
+    ex(pg.locator("svg g.markmap-node").first).to_be_visible()
+def sc_narrow_chat(pg, ex):
+    pg.get_by_role("button", name="채팅", exact=True).first.click()
+    ex(pg.get_by_placeholder("무엇이든 물어보세요")).to_be_visible()
+def sc_dark(pg, ex):
+    ex(pg.locator("html")).to_have_class("dark")
+    ex(pg.locator("[data-report] h1").first).to_be_visible()
+
+
+SCENARIOS = [
+    ("home", "/", 1440, False, sc_home),
+    ("library", "/library", 1440, False, sc_library),
+    ("new_youtube", "/new", 1440, False, sc_new_yt),
+    ("new_web", "/new", 1440, False, sc_new_web),
+    ("note_video", f"/note/{VIDEO}", 1440, False, sc_note),
+    ("note_article", f"/note/{ARTICLE}", 1440, False, sc_article),
+    ("expand_mindmap", f"/note/{VIDEO}", 1440, False, sc_mindmap),
+    ("narrow_chat_1000", f"/note/{VIDEO}", 1000, False, sc_narrow_chat),
+    ("dark_note", f"/note/{VIDEO}", 1440, True, sc_dark),
+]
+
+
+class SkipCheck(Exception):
+    pass
+
+
+def run_ui(base):
+    from playwright.sync_api import expect, sync_playwright
+    expect.set_options(timeout=15000)
+    with sync_playwright() as p:
+        try:
+            br = p.chromium.launch(channel="chrome", headless=True)  # 설치된 Chrome, 창 없음
+        except Exception:
+            br = p.chromium.launch(headless=True)  # 번들 chromium
+        for name, path, w, dark, fn in SCENARIOS:
+            blocked, errs = [], []
+
+            def route(r, blocked=blocked):
+                u = urlparse(r.request.url)
+                if u.hostname != "127.0.0.1":
+                    return r.abort()  # 외부(유튜브 등) 차단 → 결정적
+                if u.path.startswith("/api/") and r.request.method != "GET":
+                    blocked.append(f"{r.request.method} {u.path}"); return r.abort()  # AI·쓰기 동작 금지
+                r.continue_()
+
+            def scenario(name=name, path=path, w=w, dark=dark, fn=fn, blocked=blocked, errs=errs):
+                ctx = br.new_context(viewport={"width": w, "height": 900}, locale="ko-KR")
+                if dark:
+                    ctx.add_init_script("localStorage.setItem('theme','dark')")
+                pg = ctx.new_page()
+                pg.on("pageerror", lambda e: errs.append(str(e)))
+                pg.route("**/*", route)
+                try:
+                    pg.goto(base + path, wait_until="load")
+                    fn(pg, expect)
+                    pg.wait_for_timeout(500)
+                    if errs:
+                        raise RuntimeError("페이지 오류: " + "; ".join(errs[:3]))
+                finally:
+                    pg.screenshot(path=str(SHOTS / f"{name}.png"))
+                    ctx.close()
+            step(f"ui:{name}", scenario)
+            if results[-1][2].startswith("SkipCheck"):
+                results[-1] = (f"ui:{name}", True, "건너뜀 — " + results[-1][2].split(": ", 1)[1])
+            if blocked:
+                results[-1] = (results[-1][0], results[-1][1], results[-1][2] + f" (막은 요청: {', '.join(blocked[:3])})")
+        br.close()
+
+
+def main():
+    t0 = time.time()
+    shutil.rmtree(SHOTS, ignore_errors=True); SHOTS.mkdir(parents=True)
+    step("web:deps", web_deps)
+    step("web:build", lambda: sh(["npm", "run", "build"], ROOT / "web"))
+    step("web:lint", lambda: sh(["npm", "run", "lint"], ROOT / "web"))
+    step("seed", seed)
+    for m in ("files", "scenes", "transcript"):
+        step(f"backend:{m}", self_check(m))
+    step("backend:import", lambda: sh([sys.executable, "-c", "import app.main"], ROOT / "backend", env_data()))
+    srv = None
+    if all(ok for n, ok, _ in results if n in ("seed", "web:build")):
+        def go():
+            nonlocal srv
+            srv, base = start_server()
+            run_ui(base)
+        step("server+ui", go)
+    if srv:
+        srv.terminate(); srv.wait(10)  # 시작한 PID만
+    fails = [r for r in results if not r[1]]
+    lines = [f"# verify 결과 — {time.strftime('%Y-%m-%d %H:%M')}", "",
+             f"- 걸린 시간: {time.time() - t0:.0f}초 / 통과 {len(results) - len(fails)}/{len(results)}",
+             f"- 시험 데이터 원본: {seed_dir()} (복사본: .verify/data) / 스크린샷: .verify/shots/", "",
+             "| 단계 | 결과 | 이유·시간 |", "|---|---|---|"]
+    lines += [f"| {n} | {'통과' if ok else '실패'} | {why.replace('|', '/').replace(chr(10), ' ')} |" for n, ok, why in results]
+    (V / "summary.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(f"\n{'OK' if not fails else 'FAIL'} — {len(results) - len(fails)}/{len(results)} 통과, {time.time() - t0:.0f}초 → .verify/summary.md")
+    sys.exit(1 if fails else 0)
+
+
+if __name__ == "__main__":
+    main()

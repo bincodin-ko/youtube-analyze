@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from app import db
 
 router = APIRouter()
-MEDIA = Path(__file__).resolve().parents[2] / "data" / "media"
+from app.paths import MEDIA
 
 
 def _load(nid):

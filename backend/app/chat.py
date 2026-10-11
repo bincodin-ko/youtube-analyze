@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from app import ai, db
 
 router = APIRouter()
-MEDIA = Path(__file__).resolve().parents[2] / "data" / "media"
+from app.paths import MEDIA
 USAGE = {}  # 마지막 채팅 호출의 비용·토큰(사용량 확인용)
 TURNS = 4   # 프롬프트에 다시 넣는 이전 대화 쌍 수
 

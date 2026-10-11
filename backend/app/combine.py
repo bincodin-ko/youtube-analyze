@@ -9,7 +9,8 @@ from pydantic import BaseModel
 from app import ai, db
 
 router = APIRouter()
-DIR = Path(__file__).resolve().parents[2] / "data" / "combined"
+from app.paths import DATA
+DIR = DATA / "combined"
 MARK = re.compile(r"\[(\d{1,2}):(\d{1,5})\]")  # 출처 표기 [노트번호:대본줄]
 
 PROMPT = """너는 같은 주제의 자료 여러 개를 비교해 하나의 통합 리포트로 정리하는 편집자다. 아래에 노트 1..N의 요약이 있다. 각 문장 끝의 [노트번호:줄번호]는 근거 위치다.

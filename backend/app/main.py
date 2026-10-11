@@ -17,8 +17,8 @@ except Exception as e:  # AI 담당 파일이 없거나 깨져도 파이프라�
     print(f"[ai] 불러오기 실패, 요약 건너뜀: {e}")
     ai = None
 
-ROOT = Path(__file__).resolve().parents[2]
-DATA, DIST = ROOT / "data", ROOT / "web" / "dist"
+from app.paths import DATA, ROOT
+DIST = ROOT / "web" / "dist"
 MEDIA, WORK, UP = DATA / "media", DATA / "work", DATA / "uploads"
 MEDIA.mkdir(parents=True, exist_ok=True)
 db.init()

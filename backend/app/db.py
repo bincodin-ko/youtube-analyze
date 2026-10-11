@@ -2,7 +2,8 @@
 import json, sqlite3
 from pathlib import Path
 
-DB = Path(__file__).resolve().parents[2] / "data" / "notes.db"
+from app.paths import DATA
+DB = DATA / "notes.db"
 JSON_COLS = ("transcript", "report", "scenes")
 COLS = ("id", "url", "video_id", "title", "channel", "thumbnail", "duration", "upload_date", "created_at",
         "status", "step", "error", "lang", "collection_id", "kind") + JSON_COLS

@@ -7,7 +7,8 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 router = APIRouter()
-FILE = Path(__file__).resolve().parents[2] / "data" / "clips.json"
+from app.paths import DATA
+FILE = DATA / "clips.json"
 
 
 def _load() -> list:

@@ -4,7 +4,7 @@ import json, re, uuid
 from pathlib import Path
 from app import ai
 
-DATA = Path(__file__).resolve().parents[2] / "data"
+from app.paths import DATA
 CUSTOM = DATA / "templates.json"
 
 MD_FORMAT = """JSON 객체 하나만 출력(설명·코드펜스 금지):

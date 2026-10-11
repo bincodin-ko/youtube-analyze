@@ -6,7 +6,7 @@ from app import ai, templates
 
 ROOT = Path(__file__).resolve().parents[2]
 COMFY = ROOT / "tools" / "comfyui" / "ComfyUI_windows_portable"
-PORT = 8188  # 127.0.0.1 전용
+PORT = int(os.environ.get("VN_COMFY_PORT", 8188))  # 127.0.0.1 전용
 URL = f"http://127.0.0.1:{PORT}"
 MODELS = {"unet": "flux-2-klein-4b-fp8.safetensors", "clip": "qwen_3_4b_fp4_flux2.safetensors", "vae": "flux2-vae.safetensors"}
 SIZE = 768
