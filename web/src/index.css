@@ -1,0 +1,28 @@
+@import "tailwindcss";
+@import "pretendard/dist/web/variable/pretendardvariable.css";
+@custom-variant fullscreen (&:fullscreen); /* 마인드맵 브라우저 전체화면 */
+
+:root {
+  --bg: #ffffff; --bg-subtle: #f4f5f4; --text: #0c0d08; --text-muted: #9fa28e;
+  --accent: #dfff32; --link: #6663fd; --highlight: #e3ecfb; --border: #e4e4e7;
+  --text-soft: #434739;
+}
+.dark {
+  --bg: #111210; --bg-subtle: #1a1b18; --text: #ecede6; --text-muted: #8a8d7a;
+  --accent: #dfff32; --link: #9b99ff; --highlight: #1f2a44; --border: #2a2b27;
+  --text-soft: #b9bba9;
+}
+@theme inline {
+  --color-bg: var(--bg); --color-subtle: var(--bg-subtle); --color-fg: var(--text);
+  --color-muted: var(--text-muted); --color-accent: var(--accent); --color-link: var(--link);
+  --color-hl: var(--highlight); --color-line: var(--border); --color-soft: var(--text-soft);
+  --font-sans: "Pretendard Variable", Pretendard, system-ui, sans-serif;
+}
+html, body, #root { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 16px; line-height: 1.7; overflow-x: hidden; }
+@layer base {
+  button { cursor: pointer; font: inherit; color: inherit; }
+  button:disabled { cursor: default; }
+}
+.scroll-thin::-webkit-scrollbar { width: 6px; }
+.scroll-thin::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }

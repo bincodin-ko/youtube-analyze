@@ -1,0 +1,2462 @@
+{
+ "home_PC_light.png": {
+  "url": "https://lilys.ai/ko/",
+  "bodyBg": "rgba(0, 0, 0, 0)",
+  "body": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "24px",
+   "color": "rgb(0, 0, 0)"
+  },
+  "h1": {
+   "font": "Pretendard",
+   "size": "64px",
+   "weight": "600",
+   "lh": "76.8px",
+   "color": "rgb(12, 13, 8)"
+  },
+  "h2": {
+   "font": "Pretendard",
+   "size": "28px",
+   "weight": "700",
+   "lh": "35px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "h3": {
+   "font": "Pretendard",
+   "size": "17px",
+   "weight": "600",
+   "lh": "28.9px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "p": {
+   "font": "Pretendard",
+   "size": "14px",
+   "weight": "400",
+   "lh": "21.7px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "button": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(12, 13, 8)"
+  },
+  "topColors": [
+   [
+    "rgb(0, 0, 0)",
+    820
+   ],
+   [
+    "rgb(159, 162, 142)",
+    411
+   ],
+   [
+    "rgb(67, 71, 57)",
+    236
+   ],
+   [
+    "rgb(28, 30, 21)",
+    210
+   ],
+   [
+    "rgb(12, 13, 8)",
+    99
+   ],
+   [
+    "rgb(255, 255, 255)",
+    90
+   ],
+   [
+    "rgb(86, 91, 74)",
+    73
+   ],
+   [
+    "rgb(43, 43, 34)",
+    32
+   ],
+   [
+    "rgb(121, 125, 103)",
+    30
+   ],
+   [
+    "rgb(231, 232, 227)",
+    15
+   ],
+   [
+    "rgb(102, 99, 253)",
+    12
+   ],
+   [
+    "rgb(110, 139, 0)",
+    8
+   ]
+  ],
+  "pageHeight": 12968
+ },
+ "pricing_PC_light.png": {
+  "url": "https://lilys.ai/ko/pricing/",
+  "bodyBg": "rgb(255, 255, 255)",
+  "body": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "24px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "h1": null,
+  "h2": null,
+  "h3": null,
+  "p": {
+   "font": "Pretendard",
+   "size": "14px",
+   "weight": "400",
+   "lh": "21px",
+   "color": "rgb(159, 162, 142)"
+  },
+  "button": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(12, 13, 8)"
+  },
+  "topColors": [
+   [
+    "rgb(12, 13, 8)",
+    301
+   ],
+   [
+    "rgb(0, 0, 0)",
+    186
+   ],
+   [
+    "rgb(159, 162, 142)",
+    62
+   ],
+   [
+    "rgb(247, 247, 248)",
+    30
+   ],
+   [
+    "rgb(255, 255, 255)",
+    27
+   ],
+   [
+    "rgb(86, 91, 74)",
+    21
+   ],
+   [
+    "rgb(37, 37, 37)",
+    19
+   ],
+   [
+    "rgb(28, 30, 21)",
+    17
+   ],
+   [
+    "rgb(231, 232, 227)",
+    12
+   ],
+   [
+    "rgb(242, 255, 199)",
+    9
+   ],
+   [
+    "rgb(110, 139, 0)",
+    9
+   ],
+   [
+    "rgb(223, 255, 50)",
+    8
+   ]
+  ],
+  "pageHeight": 900
+ },
+ "feature-youtube-summarizer_PC_light.png": {
+  "url": "https://lilys.ai/ko/features/youtube-summarizer/",
+  "bodyBg": "rgba(0, 0, 0, 0)",
+  "body": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "24px",
+   "color": "rgb(0, 0, 0)"
+  },
+  "h1": {
+   "font": "Pretendard",
+   "size": "56px",
+   "weight": "700",
+   "lh": "61.6px",
+   "color": "rgb(12, 13, 8)"
+  },
+  "h2": {
+   "font": "Pretendard",
+   "size": "28px",
+   "weight": "700",
+   "lh": "35px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "h3": {
+   "font": "Pretendard",
+   "size": "17px",
+   "weight": "600",
+   "lh": "28.9px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "p": {
+   "font": "Pretendard",
+   "size": "18px",
+   "weight": "400",
+   "lh": "27px",
+   "color": "rgb(86, 91, 74)"
+  },
+  "button": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(12, 13, 8)"
+  },
+  "topColors": [
+   [
+    "rgb(0, 0, 0)",
+    733
+   ],
+   [
+    "rgb(159, 162, 142)",
+    386
+   ],
+   [
+    "rgb(67, 71, 57)",
+    247
+   ],
+   [
+    "rgb(28, 30, 21)",
+    210
+   ],
+   [
+    "rgb(12, 13, 8)",
+    123
+   ],
+   [
+    "rgb(110, 139, 0)",
+    98
+   ],
+   [
+    "rgb(86, 91, 74)",
+    64
+   ],
+   [
+    "rgb(255, 255, 255)",
+    37
+   ],
+   [
+    "rgb(43, 43, 34)",
+    32
+   ],
+   [
+    "rgb(121, 125, 103)",
+    17
+   ],
+   [
+    "rgb(249, 250, 249)",
+    16
+   ],
+   [
+    "rgb(231, 232, 227)",
+    12
+   ]
+  ],
+  "pageHeight": 6595
+ },
+ "feature-youtube-transcript_PC_light.png": {
+  "url": "https://lilys.ai/ko/features/youtube-to-transcript/",
+  "bodyBg": "rgba(0, 0, 0, 0)",
+  "body": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "24px",
+   "color": "rgb(0, 0, 0)"
+  },
+  "h1": {
+   "font": "Pretendard",
+   "size": "56px",
+   "weight": "700",
+   "lh": "61.6px",
+   "color": "rgb(12, 13, 8)"
+  },
+  "h2": {
+   "font": "Pretendard",
+   "size": "28px",
+   "weight": "700",
+   "lh": "35px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "h3": {
+   "font": "Pretendard",
+   "size": "17px",
+   "weight": "600",
+   "lh": "28.9px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "p": {
+   "font": "Pretendard",
+   "size": "18px",
+   "weight": "400",
+   "lh": "27px",
+   "color": "rgb(86, 91, 74)"
+  },
+  "button": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(12, 13, 8)"
+  },
+  "topColors": [
+   [
+    "rgb(0, 0, 0)",
+    733
+   ],
+   [
+    "rgb(159, 162, 142)",
+    386
+   ],
+   [
+    "rgb(67, 71, 57)",
+    247
+   ],
+   [
+    "rgb(28, 30, 21)",
+    210
+   ],
+   [
+    "rgb(12, 13, 8)",
+    122
+   ],
+   [
+    "rgb(110, 139, 0)",
+    98
+   ],
+   [
+    "rgb(86, 91, 74)",
+    64
+   ],
+   [
+    "rgb(255, 255, 255)",
+    37
+   ],
+   [
+    "rgb(43, 43, 34)",
+    32
+   ],
+   [
+    "rgb(121, 125, 103)",
+    17
+   ],
+   [
+    "rgb(249, 250, 249)",
+    16
+   ],
+   [
+    "rgb(231, 232, 227)",
+    12
+   ]
+  ],
+  "pageHeight": 6596
+ },
+ "notes-explore_PC_light.png": {
+  "url": "https://lilys.ai/ko/notes/",
+  "bodyBg": "rgb(255, 255, 255)",
+  "body": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(9, 9, 11)"
+  },
+  "h1": null,
+  "h2": {
+   "font": "Pretendard",
+   "size": "22px",
+   "weight": "800",
+   "lh": "36px",
+   "color": "rgb(9, 9, 11)"
+  },
+  "h3": {
+   "font": "Pretendard",
+   "size": "22px",
+   "weight": "800",
+   "lh": "29.7px",
+   "color": "rgb(11, 11, 15)"
+  },
+  "p": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(107, 114, 128)"
+  },
+  "button": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(9, 9, 11)"
+  },
+  "topColors": [
+   [
+    "rgb(9, 9, 11)",
+    2321
+   ],
+   [
+    "rgb(255, 255, 255)",
+    505
+   ],
+   [
+    "rgb(107, 114, 128)",
+    501
+   ],
+   [
+    "rgb(113, 113, 122)",
+    67
+   ],
+   [
+    "rgb(161, 161, 170)",
+    50
+   ],
+   [
+    "rgb(82, 82, 82)",
+    40
+   ],
+   [
+    "rgb(17, 24, 39)",
+    13
+   ],
+   [
+    "rgb(0, 0, 238)",
+    3
+   ],
+   [
+    "rgb(244, 244, 245)",
+    3
+   ],
+   [
+    "rgb(223, 255, 50)",
+    3
+   ],
+   [
+    "rgb(11, 11, 15)",
+    3
+   ],
+   [
+    "rgba(255, 255, 255, 0.4)",
+    1
+   ]
+  ],
+  "pageHeight": 25342
+ },
+ "public-note_PC_light.png": {
+  "url": "https://lilys.ai/ko/notes/fomc-meeting-20261004/fomc-press-conference-september-2026",
+  "bodyBg": "rgb(255, 255, 255)",
+  "body": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(9, 9, 11)"
+  },
+  "h1": {
+   "font": "Pretendard",
+   "size": "36px",
+   "weight": "700",
+   "lh": "45px",
+   "color": "rgb(9, 9, 11)"
+  },
+  "h2": {
+   "font": "Pretendard",
+   "size": "24px",
+   "weight": "600",
+   "lh": "36px",
+   "color": "rgb(9, 9, 11)"
+  },
+  "h3": {
+   "font": "Pretendard",
+   "size": "20px",
+   "weight": "400",
+   "lh": "32px",
+   "color": "rgb(9, 9, 11)"
+  },
+  "p": {
+   "font": "Pretendard",
+   "size": "13px",
+   "weight": "400",
+   "lh": "19.5px",
+   "color": "rgb(51, 51, 51)"
+  },
+  "button": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(9, 9, 11)"
+  },
+  "topColors": [
+   [
+    "rgb(161, 161, 170)",
+    639
+   ],
+   [
+    "rgb(51, 51, 51)",
+    582
+   ],
+   [
+    "rgb(9, 9, 11)",
+    483
+   ],
+   [
+    "rgb(113, 113, 122)",
+    74
+   ],
+   [
+    "rgb(102, 99, 253)",
+    61
+   ],
+   [
+    "rgb(0, 0, 0)",
+    44
+   ],
+   [
+    "rgb(82, 82, 91)",
+    41
+   ],
+   [
+    "rgb(82, 82, 82)",
+    40
+   ],
+   [
+    "rgb(255, 255, 255)",
+    21
+   ],
+   [
+    "rgb(17, 17, 17)",
+    18
+   ],
+   [
+    "rgba(244, 244, 245, 0.5)",
+    10
+   ],
+   [
+    "rgb(223, 255, 50)",
+    7
+   ]
+  ],
+  "pageHeight": 3444
+ },
+ "signup_PC_light.png": {
+  "url": "https://lilys.ai/ko/signup",
+  "bodyBg": "rgb(255, 255, 255)",
+  "body": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "24px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "h1": null,
+  "h2": null,
+  "h3": null,
+  "p": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(159, 162, 142)"
+  },
+  "button": null,
+  "topColors": [
+   [
+    "rgb(28, 30, 21)",
+    22
+   ],
+   [
+    "rgb(0, 0, 0)",
+    19
+   ],
+   [
+    "rgb(159, 162, 142)",
+    8
+   ],
+   [
+    "rgb(255, 255, 255)",
+    5
+   ],
+   [
+    "rgb(24, 24, 27)",
+    2
+   ],
+   [
+    "rgb(3, 199, 90)",
+    2
+   ],
+   [
+    "rgb(207, 255, 94)",
+    1
+   ],
+   [
+    "rgb(12, 13, 8)",
+    1
+   ]
+  ],
+  "pageHeight": 900
+ },
+ "home_PC_dark.png": {
+  "url": "https://lilys.ai/ko/",
+  "bodyBg": "rgba(0, 0, 0, 0)",
+  "body": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "24px",
+   "color": "rgb(0, 0, 0)"
+  },
+  "h1": {
+   "font": "Pretendard",
+   "size": "64px",
+   "weight": "600",
+   "lh": "76.8px",
+   "color": "rgb(12, 13, 8)"
+  },
+  "h2": {
+   "font": "Pretendard",
+   "size": "28px",
+   "weight": "700",
+   "lh": "35px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "h3": {
+   "font": "Pretendard",
+   "size": "17px",
+   "weight": "600",
+   "lh": "28.9px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "p": {
+   "font": "Pretendard",
+   "size": "14px",
+   "weight": "400",
+   "lh": "21.7px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "button": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(12, 13, 8)"
+  },
+  "topColors": [
+   [
+    "rgb(0, 0, 0)",
+    820
+   ],
+   [
+    "rgb(159, 162, 142)",
+    411
+   ],
+   [
+    "rgb(67, 71, 57)",
+    236
+   ],
+   [
+    "rgb(28, 30, 21)",
+    210
+   ],
+   [
+    "rgb(12, 13, 8)",
+    99
+   ],
+   [
+    "rgb(255, 255, 255)",
+    90
+   ],
+   [
+    "rgb(86, 91, 74)",
+    73
+   ],
+   [
+    "rgb(43, 43, 34)",
+    32
+   ],
+   [
+    "rgb(121, 125, 103)",
+    30
+   ],
+   [
+    "rgb(231, 232, 227)",
+    15
+   ],
+   [
+    "rgb(102, 99, 253)",
+    12
+   ],
+   [
+    "rgb(110, 139, 0)",
+    8
+   ]
+  ],
+  "pageHeight": 12968
+ },
+ "pricing_PC_dark.png": {
+  "url": "https://lilys.ai/ko/pricing/",
+  "bodyBg": "rgb(255, 255, 255)",
+  "body": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "24px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "h1": null,
+  "h2": null,
+  "h3": null,
+  "p": {
+   "font": "Pretendard",
+   "size": "14px",
+   "weight": "400",
+   "lh": "21px",
+   "color": "rgb(159, 162, 142)"
+  },
+  "button": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(12, 13, 8)"
+  },
+  "topColors": [
+   [
+    "rgb(12, 13, 8)",
+    301
+   ],
+   [
+    "rgb(0, 0, 0)",
+    186
+   ],
+   [
+    "rgb(159, 162, 142)",
+    62
+   ],
+   [
+    "rgb(247, 247, 248)",
+    30
+   ],
+   [
+    "rgb(255, 255, 255)",
+    27
+   ],
+   [
+    "rgb(86, 91, 74)",
+    21
+   ],
+   [
+    "rgb(37, 37, 37)",
+    19
+   ],
+   [
+    "rgb(28, 30, 21)",
+    17
+   ],
+   [
+    "rgb(231, 232, 227)",
+    12
+   ],
+   [
+    "rgb(242, 255, 199)",
+    9
+   ],
+   [
+    "rgb(110, 139, 0)",
+    9
+   ],
+   [
+    "rgb(223, 255, 50)",
+    8
+   ]
+  ],
+  "pageHeight": 900
+ },
+ "feature-youtube-summarizer_PC_dark.png": {
+  "url": "https://lilys.ai/ko/features/youtube-summarizer/",
+  "bodyBg": "rgba(0, 0, 0, 0)",
+  "body": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "24px",
+   "color": "rgb(0, 0, 0)"
+  },
+  "h1": {
+   "font": "Pretendard",
+   "size": "56px",
+   "weight": "700",
+   "lh": "61.6px",
+   "color": "rgb(12, 13, 8)"
+  },
+  "h2": {
+   "font": "Pretendard",
+   "size": "28px",
+   "weight": "700",
+   "lh": "35px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "h3": {
+   "font": "Pretendard",
+   "size": "17px",
+   "weight": "600",
+   "lh": "28.9px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "p": {
+   "font": "Pretendard",
+   "size": "18px",
+   "weight": "400",
+   "lh": "27px",
+   "color": "rgb(86, 91, 74)"
+  },
+  "button": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(12, 13, 8)"
+  },
+  "topColors": [
+   [
+    "rgb(0, 0, 0)",
+    733
+   ],
+   [
+    "rgb(159, 162, 142)",
+    386
+   ],
+   [
+    "rgb(67, 71, 57)",
+    247
+   ],
+   [
+    "rgb(28, 30, 21)",
+    210
+   ],
+   [
+    "rgb(12, 13, 8)",
+    123
+   ],
+   [
+    "rgb(110, 139, 0)",
+    98
+   ],
+   [
+    "rgb(86, 91, 74)",
+    64
+   ],
+   [
+    "rgb(255, 255, 255)",
+    37
+   ],
+   [
+    "rgb(43, 43, 34)",
+    32
+   ],
+   [
+    "rgb(121, 125, 103)",
+    17
+   ],
+   [
+    "rgb(249, 250, 249)",
+    16
+   ],
+   [
+    "rgb(231, 232, 227)",
+    12
+   ]
+  ],
+  "pageHeight": 6595
+ },
+ "feature-youtube-transcript_PC_dark.png": {
+  "url": "https://lilys.ai/ko/features/youtube-to-transcript/",
+  "bodyBg": "rgba(0, 0, 0, 0)",
+  "body": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "24px",
+   "color": "rgb(0, 0, 0)"
+  },
+  "h1": {
+   "font": "Pretendard",
+   "size": "56px",
+   "weight": "700",
+   "lh": "61.6px",
+   "color": "rgb(12, 13, 8)"
+  },
+  "h2": {
+   "font": "Pretendard",
+   "size": "28px",
+   "weight": "700",
+   "lh": "35px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "h3": {
+   "font": "Pretendard",
+   "size": "17px",
+   "weight": "600",
+   "lh": "28.9px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "p": {
+   "font": "Pretendard",
+   "size": "18px",
+   "weight": "400",
+   "lh": "27px",
+   "color": "rgb(86, 91, 74)"
+  },
+  "button": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(12, 13, 8)"
+  },
+  "topColors": [
+   [
+    "rgb(0, 0, 0)",
+    733
+   ],
+   [
+    "rgb(159, 162, 142)",
+    386
+   ],
+   [
+    "rgb(67, 71, 57)",
+    247
+   ],
+   [
+    "rgb(28, 30, 21)",
+    210
+   ],
+   [
+    "rgb(12, 13, 8)",
+    122
+   ],
+   [
+    "rgb(110, 139, 0)",
+    98
+   ],
+   [
+    "rgb(86, 91, 74)",
+    64
+   ],
+   [
+    "rgb(255, 255, 255)",
+    37
+   ],
+   [
+    "rgb(43, 43, 34)",
+    32
+   ],
+   [
+    "rgb(121, 125, 103)",
+    17
+   ],
+   [
+    "rgb(249, 250, 249)",
+    16
+   ],
+   [
+    "rgb(231, 232, 227)",
+    12
+   ]
+  ],
+  "pageHeight": 6596
+ },
+ "notes-explore_PC_dark.png": {
+  "url": "https://lilys.ai/ko/notes/",
+  "bodyBg": "rgb(255, 255, 255)",
+  "body": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(9, 9, 11)"
+  },
+  "h1": null,
+  "h2": {
+   "font": "Pretendard",
+   "size": "22px",
+   "weight": "800",
+   "lh": "36px",
+   "color": "rgb(9, 9, 11)"
+  },
+  "h3": {
+   "font": "Pretendard",
+   "size": "22px",
+   "weight": "800",
+   "lh": "29.7px",
+   "color": "rgb(11, 11, 15)"
+  },
+  "p": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(107, 114, 128)"
+  },
+  "button": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(9, 9, 11)"
+  },
+  "topColors": [
+   [
+    "rgb(9, 9, 11)",
+    2321
+   ],
+   [
+    "rgb(255, 255, 255)",
+    505
+   ],
+   [
+    "rgb(107, 114, 128)",
+    501
+   ],
+   [
+    "rgb(113, 113, 122)",
+    67
+   ],
+   [
+    "rgb(161, 161, 170)",
+    50
+   ],
+   [
+    "rgb(82, 82, 82)",
+    40
+   ],
+   [
+    "rgb(17, 24, 39)",
+    13
+   ],
+   [
+    "rgb(0, 0, 238)",
+    3
+   ],
+   [
+    "rgb(244, 244, 245)",
+    3
+   ],
+   [
+    "rgb(223, 255, 50)",
+    3
+   ],
+   [
+    "rgb(11, 11, 15)",
+    3
+   ],
+   [
+    "rgba(255, 255, 255, 0.4)",
+    1
+   ]
+  ],
+  "pageHeight": 25342
+ },
+ "public-note_PC_dark.png": {
+  "url": "https://lilys.ai/ko/notes/fomc-meeting-20261004/fomc-press-conference-september-2026",
+  "bodyBg": "rgb(255, 255, 255)",
+  "body": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(9, 9, 11)"
+  },
+  "h1": {
+   "font": "Pretendard",
+   "size": "36px",
+   "weight": "700",
+   "lh": "45px",
+   "color": "rgb(9, 9, 11)"
+  },
+  "h2": {
+   "font": "Pretendard",
+   "size": "24px",
+   "weight": "600",
+   "lh": "36px",
+   "color": "rgb(9, 9, 11)"
+  },
+  "h3": {
+   "font": "Pretendard",
+   "size": "20px",
+   "weight": "400",
+   "lh": "32px",
+   "color": "rgb(9, 9, 11)"
+  },
+  "p": {
+   "font": "Pretendard",
+   "size": "13px",
+   "weight": "400",
+   "lh": "19.5px",
+   "color": "rgb(51, 51, 51)"
+  },
+  "button": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(9, 9, 11)"
+  },
+  "topColors": [
+   [
+    "rgb(161, 161, 170)",
+    639
+   ],
+   [
+    "rgb(51, 51, 51)",
+    582
+   ],
+   [
+    "rgb(9, 9, 11)",
+    483
+   ],
+   [
+    "rgb(113, 113, 122)",
+    74
+   ],
+   [
+    "rgb(102, 99, 253)",
+    61
+   ],
+   [
+    "rgb(0, 0, 0)",
+    44
+   ],
+   [
+    "rgb(82, 82, 91)",
+    41
+   ],
+   [
+    "rgb(82, 82, 82)",
+    40
+   ],
+   [
+    "rgb(255, 255, 255)",
+    21
+   ],
+   [
+    "rgb(17, 17, 17)",
+    18
+   ],
+   [
+    "rgba(244, 244, 245, 0.5)",
+    10
+   ],
+   [
+    "rgb(223, 255, 50)",
+    7
+   ]
+  ],
+  "pageHeight": 3444
+ },
+ "signup_PC_dark.png": {
+  "url": "https://lilys.ai/ko/signup",
+  "bodyBg": "rgb(255, 255, 255)",
+  "body": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "24px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "h1": null,
+  "h2": null,
+  "h3": null,
+  "p": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(159, 162, 142)"
+  },
+  "button": null,
+  "topColors": [
+   [
+    "rgb(28, 30, 21)",
+    22
+   ],
+   [
+    "rgb(0, 0, 0)",
+    19
+   ],
+   [
+    "rgb(159, 162, 142)",
+    8
+   ],
+   [
+    "rgb(255, 255, 255)",
+    5
+   ],
+   [
+    "rgb(24, 24, 27)",
+    2
+   ],
+   [
+    "rgb(3, 199, 90)",
+    2
+   ],
+   [
+    "rgb(207, 255, 94)",
+    1
+   ],
+   [
+    "rgb(12, 13, 8)",
+    1
+   ]
+  ],
+  "pageHeight": 900
+ },
+ "home_Mobile_light.png": {
+  "url": "https://lilys.ai/ko/",
+  "bodyBg": "rgba(0, 0, 0, 0)",
+  "body": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "24px",
+   "color": "rgb(0, 0, 0)"
+  },
+  "h1": {
+   "font": "Pretendard",
+   "size": "30px",
+   "weight": "600",
+   "lh": "36px",
+   "color": "rgb(12, 13, 8)"
+  },
+  "h2": {
+   "font": "Pretendard",
+   "size": "22px",
+   "weight": "700",
+   "lh": "27.5px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "h3": {
+   "font": "Pretendard",
+   "size": "15px",
+   "weight": "600",
+   "lh": "25.5px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "p": {
+   "font": "Pretendard",
+   "size": "14px",
+   "weight": "400",
+   "lh": "21.7px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "button": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(12, 13, 8)"
+  },
+  "topColors": [
+   [
+    "rgb(0, 0, 0)",
+    815
+   ],
+   [
+    "rgb(159, 162, 142)",
+    411
+   ],
+   [
+    "rgb(67, 71, 57)",
+    236
+   ],
+   [
+    "rgb(28, 30, 21)",
+    210
+   ],
+   [
+    "rgb(12, 13, 8)",
+    99
+   ],
+   [
+    "rgb(255, 255, 255)",
+    90
+   ],
+   [
+    "rgb(86, 91, 74)",
+    73
+   ],
+   [
+    "rgb(43, 43, 34)",
+    32
+   ],
+   [
+    "rgb(121, 125, 103)",
+    30
+   ],
+   [
+    "rgb(231, 232, 227)",
+    15
+   ],
+   [
+    "rgb(102, 99, 253)",
+    12
+   ],
+   [
+    "rgb(110, 139, 0)",
+    8
+   ]
+  ],
+  "pageHeight": 12464
+ },
+ "pricing_Mobile_light.png": {
+  "url": "https://lilys.ai/ko/pricing/",
+  "bodyBg": "rgb(255, 255, 255)",
+  "body": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "24px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "h1": null,
+  "h2": null,
+  "h3": null,
+  "p": {
+   "font": "Pretendard",
+   "size": "14px",
+   "weight": "400",
+   "lh": "21px",
+   "color": "rgb(159, 162, 142)"
+  },
+  "button": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(12, 13, 8)"
+  },
+  "topColors": [
+   [
+    "rgb(12, 13, 8)",
+    301
+   ],
+   [
+    "rgb(0, 0, 0)",
+    186
+   ],
+   [
+    "rgb(159, 162, 142)",
+    62
+   ],
+   [
+    "rgb(247, 247, 248)",
+    30
+   ],
+   [
+    "rgb(255, 255, 255)",
+    27
+   ],
+   [
+    "rgb(86, 91, 74)",
+    21
+   ],
+   [
+    "rgb(37, 37, 37)",
+    19
+   ],
+   [
+    "rgb(28, 30, 21)",
+    14
+   ],
+   [
+    "rgb(231, 232, 227)",
+    12
+   ],
+   [
+    "rgb(242, 255, 199)",
+    9
+   ],
+   [
+    "rgb(110, 139, 0)",
+    9
+   ],
+   [
+    "rgb(223, 255, 50)",
+    8
+   ]
+  ],
+  "pageHeight": 844
+ },
+ "feature-youtube-summarizer_Mobile_light.png": {
+  "url": "https://lilys.ai/ko/features/youtube-summarizer/",
+  "bodyBg": "rgba(0, 0, 0, 0)",
+  "body": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "24px",
+   "color": "rgb(0, 0, 0)"
+  },
+  "h1": {
+   "font": "Pretendard",
+   "size": "34px",
+   "weight": "700",
+   "lh": "37.4px",
+   "color": "rgb(12, 13, 8)"
+  },
+  "h2": {
+   "font": "Pretendard",
+   "size": "22px",
+   "weight": "700",
+   "lh": "27.5px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "h3": {
+   "font": "Pretendard",
+   "size": "15px",
+   "weight": "600",
+   "lh": "25.5px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "p": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "24px",
+   "color": "rgb(86, 91, 74)"
+  },
+  "button": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(12, 13, 8)"
+  },
+  "topColors": [
+   [
+    "rgb(0, 0, 0)",
+    733
+   ],
+   [
+    "rgb(159, 162, 142)",
+    386
+   ],
+   [
+    "rgb(67, 71, 57)",
+    247
+   ],
+   [
+    "rgb(28, 30, 21)",
+    210
+   ],
+   [
+    "rgb(12, 13, 8)",
+    123
+   ],
+   [
+    "rgb(110, 139, 0)",
+    98
+   ],
+   [
+    "rgb(86, 91, 74)",
+    64
+   ],
+   [
+    "rgb(255, 255, 255)",
+    37
+   ],
+   [
+    "rgb(43, 43, 34)",
+    32
+   ],
+   [
+    "rgb(121, 125, 103)",
+    17
+   ],
+   [
+    "rgb(249, 250, 249)",
+    16
+   ],
+   [
+    "rgb(231, 232, 227)",
+    12
+   ]
+  ],
+  "pageHeight": 7060
+ },
+ "feature-youtube-transcript_Mobile_light.png": {
+  "url": "https://lilys.ai/ko/features/youtube-to-transcript/",
+  "bodyBg": "rgba(0, 0, 0, 0)",
+  "body": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "24px",
+   "color": "rgb(0, 0, 0)"
+  },
+  "h1": {
+   "font": "Pretendard",
+   "size": "34px",
+   "weight": "700",
+   "lh": "37.4px",
+   "color": "rgb(12, 13, 8)"
+  },
+  "h2": {
+   "font": "Pretendard",
+   "size": "22px",
+   "weight": "700",
+   "lh": "27.5px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "h3": {
+   "font": "Pretendard",
+   "size": "15px",
+   "weight": "600",
+   "lh": "25.5px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "p": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "24px",
+   "color": "rgb(86, 91, 74)"
+  },
+  "button": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(12, 13, 8)"
+  },
+  "topColors": [
+   [
+    "rgb(0, 0, 0)",
+    733
+   ],
+   [
+    "rgb(159, 162, 142)",
+    386
+   ],
+   [
+    "rgb(67, 71, 57)",
+    247
+   ],
+   [
+    "rgb(28, 30, 21)",
+    210
+   ],
+   [
+    "rgb(12, 13, 8)",
+    122
+   ],
+   [
+    "rgb(110, 139, 0)",
+    98
+   ],
+   [
+    "rgb(86, 91, 74)",
+    64
+   ],
+   [
+    "rgb(255, 255, 255)",
+    37
+   ],
+   [
+    "rgb(43, 43, 34)",
+    32
+   ],
+   [
+    "rgb(121, 125, 103)",
+    17
+   ],
+   [
+    "rgb(249, 250, 249)",
+    16
+   ],
+   [
+    "rgb(231, 232, 227)",
+    12
+   ]
+  ],
+  "pageHeight": 7100
+ },
+ "notes-explore_Mobile_light.png": {
+  "url": "https://lilys.ai/ko/notes/",
+  "bodyBg": "rgb(255, 255, 255)",
+  "body": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(9, 9, 11)"
+  },
+  "h1": null,
+  "h2": {
+   "font": "Pretendard",
+   "size": "22px",
+   "weight": "800",
+   "lh": "36px",
+   "color": "rgb(9, 9, 11)"
+  },
+  "h3": {
+   "font": "Pretendard",
+   "size": "20px",
+   "weight": "800",
+   "lh": "27px",
+   "color": "rgb(11, 11, 15)"
+  },
+  "p": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(107, 114, 128)"
+  },
+  "button": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(9, 9, 11)"
+  },
+  "topColors": [
+   [
+    "rgb(9, 9, 11)",
+    2321
+   ],
+   [
+    "rgb(255, 255, 255)",
+    505
+   ],
+   [
+    "rgb(107, 114, 128)",
+    501
+   ],
+   [
+    "rgb(113, 113, 122)",
+    67
+   ],
+   [
+    "rgb(161, 161, 170)",
+    50
+   ],
+   [
+    "rgb(82, 82, 82)",
+    40
+   ],
+   [
+    "rgb(17, 24, 39)",
+    13
+   ],
+   [
+    "rgb(0, 0, 238)",
+    3
+   ],
+   [
+    "rgb(244, 244, 245)",
+    3
+   ],
+   [
+    "rgb(223, 255, 50)",
+    3
+   ],
+   [
+    "rgb(11, 11, 15)",
+    3
+   ],
+   [
+    "rgba(255, 255, 255, 0.4)",
+    1
+   ]
+  ],
+  "pageHeight": 73320
+ },
+ "public-note_Mobile_light.png": {
+  "url": "https://lilys.ai/ko/notes/fomc-meeting-20261004/fomc-press-conference-september-2026",
+  "bodyBg": "rgb(255, 255, 255)",
+  "body": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(9, 9, 11)"
+  },
+  "h1": {
+   "font": "Pretendard",
+   "size": "36px",
+   "weight": "700",
+   "lh": "45px",
+   "color": "rgb(9, 9, 11)"
+  },
+  "h2": {
+   "font": "Pretendard",
+   "size": "24px",
+   "weight": "600",
+   "lh": "36px",
+   "color": "rgb(9, 9, 11)"
+  },
+  "h3": {
+   "font": "Pretendard",
+   "size": "20px",
+   "weight": "400",
+   "lh": "32px",
+   "color": "rgb(9, 9, 11)"
+  },
+  "p": {
+   "font": "Pretendard",
+   "size": "13px",
+   "weight": "400",
+   "lh": "19.5px",
+   "color": "rgb(51, 51, 51)"
+  },
+  "button": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(9, 9, 11)"
+  },
+  "topColors": [
+   [
+    "rgb(161, 161, 170)",
+    639
+   ],
+   [
+    "rgb(51, 51, 51)",
+    582
+   ],
+   [
+    "rgb(9, 9, 11)",
+    485
+   ],
+   [
+    "rgb(113, 113, 122)",
+    71
+   ],
+   [
+    "rgb(102, 99, 253)",
+    61
+   ],
+   [
+    "rgb(0, 0, 0)",
+    45
+   ],
+   [
+    "rgb(82, 82, 91)",
+    41
+   ],
+   [
+    "rgb(82, 82, 82)",
+    40
+   ],
+   [
+    "rgb(255, 255, 255)",
+    22
+   ],
+   [
+    "rgb(17, 17, 17)",
+    18
+   ],
+   [
+    "rgba(244, 244, 245, 0.5)",
+    10
+   ],
+   [
+    "rgb(223, 255, 50)",
+    7
+   ]
+  ],
+  "pageHeight": 3349
+ },
+ "signup_Mobile_light.png": {
+  "url": "https://lilys.ai/ko/signup",
+  "bodyBg": "rgb(255, 255, 255)",
+  "body": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "24px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "h1": null,
+  "h2": null,
+  "h3": null,
+  "p": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(159, 162, 142)"
+  },
+  "button": null,
+  "topColors": [
+   [
+    "rgb(28, 30, 21)",
+    19
+   ],
+   [
+    "rgb(0, 0, 0)",
+    19
+   ],
+   [
+    "rgb(159, 162, 142)",
+    8
+   ],
+   [
+    "rgb(255, 255, 255)",
+    5
+   ],
+   [
+    "rgb(24, 24, 27)",
+    2
+   ],
+   [
+    "rgb(3, 199, 90)",
+    2
+   ],
+   [
+    "rgb(207, 255, 94)",
+    1
+   ],
+   [
+    "rgb(12, 13, 8)",
+    1
+   ]
+  ],
+  "pageHeight": 844
+ },
+ "home_Mobile_dark.png": {
+  "url": "https://lilys.ai/ko/",
+  "bodyBg": "rgba(0, 0, 0, 0)",
+  "body": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "24px",
+   "color": "rgb(0, 0, 0)"
+  },
+  "h1": {
+   "font": "Pretendard",
+   "size": "30px",
+   "weight": "600",
+   "lh": "36px",
+   "color": "rgb(12, 13, 8)"
+  },
+  "h2": {
+   "font": "Pretendard",
+   "size": "22px",
+   "weight": "700",
+   "lh": "27.5px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "h3": {
+   "font": "Pretendard",
+   "size": "15px",
+   "weight": "600",
+   "lh": "25.5px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "p": {
+   "font": "Pretendard",
+   "size": "14px",
+   "weight": "400",
+   "lh": "21.7px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "button": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(12, 13, 8)"
+  },
+  "topColors": [
+   [
+    "rgb(0, 0, 0)",
+    815
+   ],
+   [
+    "rgb(159, 162, 142)",
+    411
+   ],
+   [
+    "rgb(67, 71, 57)",
+    236
+   ],
+   [
+    "rgb(28, 30, 21)",
+    210
+   ],
+   [
+    "rgb(12, 13, 8)",
+    99
+   ],
+   [
+    "rgb(255, 255, 255)",
+    90
+   ],
+   [
+    "rgb(86, 91, 74)",
+    73
+   ],
+   [
+    "rgb(43, 43, 34)",
+    32
+   ],
+   [
+    "rgb(121, 125, 103)",
+    30
+   ],
+   [
+    "rgb(231, 232, 227)",
+    15
+   ],
+   [
+    "rgb(102, 99, 253)",
+    12
+   ],
+   [
+    "rgb(110, 139, 0)",
+    8
+   ]
+  ],
+  "pageHeight": 12464
+ },
+ "pricing_Mobile_dark.png": {
+  "url": "https://lilys.ai/ko/pricing/",
+  "bodyBg": "rgb(255, 255, 255)",
+  "body": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "24px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "h1": null,
+  "h2": null,
+  "h3": null,
+  "p": {
+   "font": "Pretendard",
+   "size": "14px",
+   "weight": "400",
+   "lh": "21px",
+   "color": "rgb(159, 162, 142)"
+  },
+  "button": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(12, 13, 8)"
+  },
+  "topColors": [
+   [
+    "rgb(12, 13, 8)",
+    301
+   ],
+   [
+    "rgb(0, 0, 0)",
+    186
+   ],
+   [
+    "rgb(159, 162, 142)",
+    62
+   ],
+   [
+    "rgb(247, 247, 248)",
+    30
+   ],
+   [
+    "rgb(255, 255, 255)",
+    27
+   ],
+   [
+    "rgb(86, 91, 74)",
+    21
+   ],
+   [
+    "rgb(37, 37, 37)",
+    19
+   ],
+   [
+    "rgb(28, 30, 21)",
+    14
+   ],
+   [
+    "rgb(231, 232, 227)",
+    12
+   ],
+   [
+    "rgb(242, 255, 199)",
+    9
+   ],
+   [
+    "rgb(110, 139, 0)",
+    9
+   ],
+   [
+    "rgb(223, 255, 50)",
+    8
+   ]
+  ],
+  "pageHeight": 844
+ },
+ "feature-youtube-summarizer_Mobile_dark.png": {
+  "url": "https://lilys.ai/ko/features/youtube-summarizer/",
+  "bodyBg": "rgba(0, 0, 0, 0)",
+  "body": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "24px",
+   "color": "rgb(0, 0, 0)"
+  },
+  "h1": {
+   "font": "Pretendard",
+   "size": "34px",
+   "weight": "700",
+   "lh": "37.4px",
+   "color": "rgb(12, 13, 8)"
+  },
+  "h2": {
+   "font": "Pretendard",
+   "size": "22px",
+   "weight": "700",
+   "lh": "27.5px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "h3": {
+   "font": "Pretendard",
+   "size": "15px",
+   "weight": "600",
+   "lh": "25.5px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "p": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "24px",
+   "color": "rgb(86, 91, 74)"
+  },
+  "button": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(12, 13, 8)"
+  },
+  "topColors": [
+   [
+    "rgb(0, 0, 0)",
+    733
+   ],
+   [
+    "rgb(159, 162, 142)",
+    386
+   ],
+   [
+    "rgb(67, 71, 57)",
+    247
+   ],
+   [
+    "rgb(28, 30, 21)",
+    210
+   ],
+   [
+    "rgb(12, 13, 8)",
+    123
+   ],
+   [
+    "rgb(110, 139, 0)",
+    98
+   ],
+   [
+    "rgb(86, 91, 74)",
+    64
+   ],
+   [
+    "rgb(255, 255, 255)",
+    37
+   ],
+   [
+    "rgb(43, 43, 34)",
+    32
+   ],
+   [
+    "rgb(121, 125, 103)",
+    17
+   ],
+   [
+    "rgb(249, 250, 249)",
+    16
+   ],
+   [
+    "rgb(231, 232, 227)",
+    12
+   ]
+  ],
+  "pageHeight": 7060
+ },
+ "feature-youtube-transcript_Mobile_dark.png": {
+  "url": "https://lilys.ai/ko/features/youtube-to-transcript/",
+  "bodyBg": "rgba(0, 0, 0, 0)",
+  "body": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "24px",
+   "color": "rgb(0, 0, 0)"
+  },
+  "h1": {
+   "font": "Pretendard",
+   "size": "34px",
+   "weight": "700",
+   "lh": "37.4px",
+   "color": "rgb(12, 13, 8)"
+  },
+  "h2": {
+   "font": "Pretendard",
+   "size": "22px",
+   "weight": "700",
+   "lh": "27.5px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "h3": {
+   "font": "Pretendard",
+   "size": "15px",
+   "weight": "600",
+   "lh": "25.5px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "p": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "24px",
+   "color": "rgb(86, 91, 74)"
+  },
+  "button": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(12, 13, 8)"
+  },
+  "topColors": [
+   [
+    "rgb(0, 0, 0)",
+    733
+   ],
+   [
+    "rgb(159, 162, 142)",
+    386
+   ],
+   [
+    "rgb(67, 71, 57)",
+    247
+   ],
+   [
+    "rgb(28, 30, 21)",
+    210
+   ],
+   [
+    "rgb(12, 13, 8)",
+    122
+   ],
+   [
+    "rgb(110, 139, 0)",
+    98
+   ],
+   [
+    "rgb(86, 91, 74)",
+    64
+   ],
+   [
+    "rgb(255, 255, 255)",
+    37
+   ],
+   [
+    "rgb(43, 43, 34)",
+    32
+   ],
+   [
+    "rgb(121, 125, 103)",
+    17
+   ],
+   [
+    "rgb(249, 250, 249)",
+    16
+   ],
+   [
+    "rgb(231, 232, 227)",
+    12
+   ]
+  ],
+  "pageHeight": 7100
+ },
+ "notes-explore_Mobile_dark.png": {
+  "url": "https://lilys.ai/ko/notes/",
+  "bodyBg": "rgb(255, 255, 255)",
+  "body": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(9, 9, 11)"
+  },
+  "h1": null,
+  "h2": {
+   "font": "Pretendard",
+   "size": "22px",
+   "weight": "800",
+   "lh": "36px",
+   "color": "rgb(9, 9, 11)"
+  },
+  "h3": {
+   "font": "Pretendard",
+   "size": "20px",
+   "weight": "800",
+   "lh": "27px",
+   "color": "rgb(11, 11, 15)"
+  },
+  "p": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(107, 114, 128)"
+  },
+  "button": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(9, 9, 11)"
+  },
+  "topColors": [
+   [
+    "rgb(9, 9, 11)",
+    2321
+   ],
+   [
+    "rgb(255, 255, 255)",
+    505
+   ],
+   [
+    "rgb(107, 114, 128)",
+    501
+   ],
+   [
+    "rgb(113, 113, 122)",
+    67
+   ],
+   [
+    "rgb(161, 161, 170)",
+    50
+   ],
+   [
+    "rgb(82, 82, 82)",
+    40
+   ],
+   [
+    "rgb(17, 24, 39)",
+    13
+   ],
+   [
+    "rgb(0, 0, 238)",
+    3
+   ],
+   [
+    "rgb(244, 244, 245)",
+    3
+   ],
+   [
+    "rgb(223, 255, 50)",
+    3
+   ],
+   [
+    "rgb(11, 11, 15)",
+    3
+   ],
+   [
+    "rgba(255, 255, 255, 0.4)",
+    1
+   ]
+  ],
+  "pageHeight": 73320
+ },
+ "public-note_Mobile_dark.png": {
+  "url": "https://lilys.ai/ko/notes/fomc-meeting-20261004/fomc-press-conference-september-2026",
+  "bodyBg": "rgb(255, 255, 255)",
+  "body": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(9, 9, 11)"
+  },
+  "h1": {
+   "font": "Pretendard",
+   "size": "36px",
+   "weight": "700",
+   "lh": "45px",
+   "color": "rgb(9, 9, 11)"
+  },
+  "h2": {
+   "font": "Pretendard",
+   "size": "24px",
+   "weight": "600",
+   "lh": "36px",
+   "color": "rgb(9, 9, 11)"
+  },
+  "h3": {
+   "font": "Pretendard",
+   "size": "20px",
+   "weight": "400",
+   "lh": "32px",
+   "color": "rgb(9, 9, 11)"
+  },
+  "p": {
+   "font": "Pretendard",
+   "size": "13px",
+   "weight": "400",
+   "lh": "19.5px",
+   "color": "rgb(51, 51, 51)"
+  },
+  "button": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(9, 9, 11)"
+  },
+  "topColors": [
+   [
+    "rgb(161, 161, 170)",
+    639
+   ],
+   [
+    "rgb(51, 51, 51)",
+    582
+   ],
+   [
+    "rgb(9, 9, 11)",
+    485
+   ],
+   [
+    "rgb(113, 113, 122)",
+    71
+   ],
+   [
+    "rgb(102, 99, 253)",
+    61
+   ],
+   [
+    "rgb(0, 0, 0)",
+    45
+   ],
+   [
+    "rgb(82, 82, 91)",
+    41
+   ],
+   [
+    "rgb(82, 82, 82)",
+    40
+   ],
+   [
+    "rgb(255, 255, 255)",
+    22
+   ],
+   [
+    "rgb(17, 17, 17)",
+    18
+   ],
+   [
+    "rgba(244, 244, 245, 0.5)",
+    10
+   ],
+   [
+    "rgb(223, 255, 50)",
+    7
+   ]
+  ],
+  "pageHeight": 3349
+ },
+ "signup_Mobile_dark.png": {
+  "url": "https://lilys.ai/ko/signup",
+  "bodyBg": "rgb(255, 255, 255)",
+  "body": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "24px",
+   "color": "rgb(28, 30, 21)"
+  },
+  "h1": null,
+  "h2": null,
+  "h3": null,
+  "p": {
+   "font": "Pretendard",
+   "size": "16px",
+   "weight": "400",
+   "lh": "25.6px",
+   "color": "rgb(159, 162, 142)"
+  },
+  "button": null,
+  "topColors": [
+   [
+    "rgb(28, 30, 21)",
+    19
+   ],
+   [
+    "rgb(0, 0, 0)",
+    19
+   ],
+   [
+    "rgb(159, 162, 142)",
+    8
+   ],
+   [
+    "rgb(255, 255, 255)",
+    5
+   ],
+   [
+    "rgb(24, 24, 27)",
+    2
+   ],
+   [
+    "rgb(3, 199, 90)",
+    2
+   ],
+   [
+    "rgb(207, 255, 94)",
+    1
+   ],
+   [
+    "rgb(12, 13, 8)",
+    1
+   ]
+  ],
+  "pageHeight": 844
+ }
+}

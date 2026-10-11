@@ -1,0 +1,9 @@
+data/
+.lilys-profile/
+backend/.venv/
+web/node_modules/
+web/dist/
+__pycache__/
+tools/comfyui/
+.verify/
+*.bak-*
