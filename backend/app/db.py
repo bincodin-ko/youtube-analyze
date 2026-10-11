@@ -10,7 +10,7 @@ COLS = ("id", "url", "video_id", "title", "channel", "thumbnail", "duration", "u
 
 
 _FTS_VALS = ("{t}.rowid, {t}.title, "
-             "(SELECT group_concat(value,' ') FROM json_tree({t}.report) WHERE type='text'), "
+             "(SELECT group_concat(value,' ') FROM json_tree({t}.report) WHERE type='text' AND key NOT IN ('id','file')), "
              "(SELECT group_concat(value->>'text',' ') FROM json_each({t}.transcript))")
 
 
@@ -31,7 +31,13 @@ def init():
             c.execute("ALTER TABLE notes ADD COLUMN collection_id INTEGER")  # 기존 노트는 NULL(컬렉션 없음)
         if "kind" not in [r[1] for r in c.execute("PRAGMA table_info(notes)")]:
             c.execute("ALTER TABLE notes ADD COLUMN kind TEXT DEFAULT 'video'")  # video | article | pdf | audio | localvideo. 기존 노트는 video
-        # 검색: trigram FTS. 리포트·대본 JSON에서 글자 값만 뽑아 넣음. 동기화는 트리거가 맡음
+        # 검색: trigram FTS. 리포트·대본 JSON에서 글자 값만 뽑아 넣음(장면 파일 이름·번호 id 는 뺌). 동기화는 트리거가 맡음
+        # 예전 색인(파일 이름까지 넣던 것)이면 지우고 다시 만든다. 노트 자체는 그대로
+        old = c.execute("SELECT sql FROM sqlite_master WHERE name='notes_fts_insert'").fetchone()
+        if old and "NOT IN" not in old[0]:
+            for t in ("insert", "update", "delete"):
+                c.execute(f"DROP TRIGGER IF EXISTS notes_fts_{t}")
+            c.execute("DROP TABLE IF EXISTS notes_fts")
         if not c.execute("SELECT 1 FROM sqlite_master WHERE name='notes_fts'").fetchone():
             c.execute("CREATE VIRTUAL TABLE notes_fts USING fts5(title, report, transcript, tokenize='trigram')")
             c.execute(f"INSERT INTO notes_fts(rowid,title,report,transcript) SELECT {_FTS_VALS.format(t='notes')} FROM notes")

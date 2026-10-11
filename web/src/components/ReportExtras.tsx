@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { Check, ChevronDown } from 'lucide-react'
 import type { Note } from '../api'
+import Backdrop from './Backdrop'
 
 export type Report = NonNullable<Note['report']>
 export type Term = { term: string; easy: string }
@@ -34,7 +35,7 @@ export function LengthMenu({ style, busy, onPick }: { style: Style; busy: boolea
       <button onClick={() => setOpen(!open)} className="flex items-center gap-1 h-9 px-2 text-[15px]">{LABEL[style]}<ChevronDown size={16} /></button>
       {open && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <Backdrop z="z-10" onClose={() => setOpen(false)} />
           <div className="absolute z-20 top-10 left-0 w-[150px] rounded-xl border border-line bg-bg p-1.5 shadow-[0_4px_16px_rgba(0,0,0,.08)]">
             {(['short', 'default', 'long', 'easy'] as Style[]).map((l) => (
               <button key={l} disabled={busy} onClick={() => { setOpen(false); onPick(l) }}

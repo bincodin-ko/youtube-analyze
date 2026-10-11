@@ -4,6 +4,7 @@ import { AudioLines, Check, FileText, Film, Folder, Layers, Loader2, MoreHorizon
 import Sidebar, { MobileBar } from '../components/Sidebar'
 import { ConfirmNote } from '../components/NoteMenu'
 import { CombinedList, listCombined, makeCombined, type CombinedItem } from './Combined'
+import Backdrop from '../components/Backdrop'
 import {
   collectionsChanged, getCollection, listCollections, listNotes, moveNote, search,
   type Collection, type NoteSummary, type SearchHit,
@@ -63,7 +64,7 @@ export function NoteGrid({ notes, onMoved, sel, onSel }: { notes: NoteSummary[];
           <button onClick={() => open(n.id)} title="더보기" className="absolute right-2 bottom-3 grid place-items-center size-8 rounded-md text-soft hover:bg-subtle"><MoreHorizontal size={18} /></button>
           {menu === n.id && (
             <>
-              <div className="fixed inset-0 z-20" onClick={() => setMenu(null)} />
+              <Backdrop z="z-20" onClose={() => setMenu(null)} />
               <div className="absolute right-2 bottom-12 z-30 w-[220px] rounded-xl border border-line bg-bg shadow-[0_4px_16px_rgba(0,0,0,.08)] p-1.5 text-[14px]">
                 <p className="px-2.5 pt-1 pb-1.5 text-[12px] text-muted">컬렉션 지정</p>
                 {cols.length === 0 && <p className="px-2.5 pb-2 text-[13px] text-muted">왼쪽 "+ 새 컬렉션"으로 먼저 만들어 주세요</p>}

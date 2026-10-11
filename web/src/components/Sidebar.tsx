@@ -4,6 +4,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { BookOpen, Folder, Highlighter, House, MoreHorizontal, PanelLeft, Pencil, Plus, Search, Trash2 } from 'lucide-react'
 import { collectionsChanged, createCollection, deleteCollection, listCollections, renameCollection, type Collection } from '../api'
 import { Logo, ThemeButton } from './ui'
+import Backdrop from './Backdrop'
 
 const item = () => 'flex items-center gap-2.5 h-[35px] px-1 rounded-md text-[16px] font-semibold'
 
@@ -98,7 +99,7 @@ function Collections() {
       ))}
       {menu && mc && createPortal(  // 스크롤 영역 밖(body)에 띄워 잘리지 않게
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setMenu(null)} />
+          <Backdrop z="z-40" onClose={() => setMenu(null)} />
           <div style={{ top: menu.top }} className="fixed left-[40px] w-[190px] z-50 rounded-xl border border-line bg-bg shadow-[0_4px_16px_rgba(0,0,0,.08)] p-1.5 text-[14px]">
             <button onClick={() => { setMenu(null); setEdit(mc.id) }} className="flex items-center gap-2 w-full h-9 px-2.5 rounded-lg hover:bg-subtle text-left"><Pencil size={14} />이름 바꾸기</button>
             <button onClick={() => { setMenu(null); setAsk(mc) }} className="flex items-center gap-2 w-full h-9 px-2.5 rounded-lg hover:bg-subtle text-left text-red-500"><Trash2 size={14} />컬렉션 삭제</button>

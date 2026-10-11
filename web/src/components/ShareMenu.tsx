@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Check, Copy, FileCode, FileDown, FileText, Share2 } from 'lucide-react'
+import Backdrop from './Backdrop'
 
 // 툴바 "공유" → 릴리스 공유 메뉴 모양(탭: 내보내기·복사). 로컬 앱이라 "공유(링크 공개)" 탭은 없음
 export default function ShareMenu({ id, ready, className }: { id: string; ready: boolean; className: string }) {
@@ -22,7 +23,7 @@ export default function ShareMenu({ id, ready, className }: { id: string; ready:
       </button>
       {open && (
         <>
-          <div className="fixed inset-0 z-20" onClick={() => setOpen(false)} />
+          <Backdrop z="z-20" onClose={() => setOpen(false)} />
           <div className="absolute right-0 top-10 z-30 w-[290px] rounded-xl border border-line bg-bg shadow-[0_4px_16px_rgba(0,0,0,.08)] p-4">
             <div className="flex gap-4 text-[15px] border-b border-line">
               {([['export', '내보내기'], ['copy', '복사']] as const).map(([k, l]) => (

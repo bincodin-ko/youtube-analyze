@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Check, Folder, MoreHorizontal, Trash2 } from 'lucide-react'
 import { collectionsChanged, deleteNote, listCollections, moveNote, type Collection } from '../api'
+import Backdrop from './Backdrop'
 
 // 앱 안의 삭제 확인 모달 (브라우저 confirm 대신)
 export function ConfirmNote({ id, title, onCancel, onDone }: { id: string; title: string; onCancel: () => void; onDone: () => void }) {
@@ -36,7 +37,7 @@ export default function NoteMenu({ id, title, collectionId, canDelete, className
       <button onClick={toggle} title="더보기" className={className}><MoreHorizontal size={18} /></button>
       {open && (
         <>
-          <div className="fixed inset-0 z-20" onClick={() => setOpen(false)} />
+          <Backdrop z="z-20" onClose={() => setOpen(false)} />
           <div className="absolute right-0 top-10 z-30 w-[220px] rounded-xl border border-line bg-bg shadow-[0_4px_16px_rgba(0,0,0,.08)] p-1.5 text-[14px]">
             <p className="px-2.5 pt-1 pb-1.5 text-[12px] text-muted">컬렉션 지정</p>
             {cols.length === 0 && <p className="px-2.5 pb-2 text-[13px] text-muted">왼쪽 "+ 새 컬렉션"으로 먼저 만들어 주세요</p>}

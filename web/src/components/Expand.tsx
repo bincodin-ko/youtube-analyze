@@ -7,6 +7,7 @@ import { Flashcards, QuizView, type Card, type Quiz } from './ExpandCards'
 import Infographic, { type Info } from './Infographic'
 import ExpandModal from './ExpandModal'
 import Cartoon, { type Toon } from './Cartoon'
+import Backdrop from './Backdrop'
 
 export type Tpls = { builtin: { key: string; name: string; cat: string; desc: string; kind: string }[]; custom: { key: string; name: string; prompt: string }[] }
 type Ext = Partial<Omit<Info, 'blocks'>> & { kind: 'md' | 'flash' | 'quiz' | 'infographic' | 'cartoon'; title: string; blocks?: any[]; cards?: Card[]; questions?: Quiz[] }
@@ -78,7 +79,7 @@ export function ExpandMenu({ ex }: { ex: Ex }) {
       <button onClick={() => setOpen(!open)} className="flex items-center gap-1 h-9 px-2 text-[15px] max-w-[130px]"><span className="truncate">{ex.nameOf(ex.cur)}</span><ChevronDown size={16} className="shrink-0" /></button>
       {open && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <Backdrop z="z-10" onClose={() => setOpen(false)} />
           <div className="absolute z-20 top-10 left-0 w-[200px] rounded-xl border border-line bg-bg p-1.5 shadow-[0_4px_16px_rgba(0,0,0,.08)]">
             {keys.map((k) => (
               <button key={k} onClick={() => { setOpen(false); ex.setCur(k) }} className={`flex items-center justify-between gap-2 w-full h-9 px-3 rounded-lg text-[15px] ${k === ex.cur ? 'bg-subtle' : 'hover:bg-subtle'}`}>
