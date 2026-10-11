@@ -23,7 +23,7 @@ function useHold(ctl: Ctl, delay: number, setFast: (n: number) => void) {
 }
 
 // 플레이어는 하나(iframe 재생성 시 재생이 끊김)를 fixed로 띄우고, 자리표시자(slot) 위치·크기를 따라다닌다.
-export default function Stage({ children, ctl, slot }: { children: ReactNode; ctl: Ctl; slot: RefObject<HTMLDivElement | null> }) {
+export default function Stage({ children, ctl, slot, hold }: { children: ReactNode; ctl: Ctl; slot: RefObject<HTMLDivElement | null>; hold?: boolean }) {
   const box = useRef<HTMLDivElement>(null)
   const [fast, setFast] = useState(0)
   const key = useHold(ctl, 300, setFast)
@@ -63,6 +63,10 @@ export default function Stage({ children, ctl, slot }: { children: ReactNode; ct
     <div ref={box} data-stage data-fast={fast} style={{ display: 'none' }}
       className="fixed z-20 bg-black">
       {children}
+      {/* 크게 보기 때만: 위(음소거·설정) 줄과 아래(전체화면·공유, 아래에서 ~130px) 버튼을 뺀 가운데를 꾹 누르면 2배속, 짧게 누르면 재생/정지 */}
+      {hold && <div data-stage-cover className="absolute inset-x-0 top-[56px] bottom-[136px] hidden min-[1100px]:block cursor-pointer select-none"
+        onPointerDown={e => { if (e.button === 0) { e.currentTarget.setPointerCapture(e.pointerId); key.down() } }}
+        onPointerUp={() => key.up()} onPointerCancel={() => key.up()} />}
       {fast > 0 && <span data-stage-badge className="absolute top-3 left-1/2 -translate-x-1/2 px-3 h-7 grid place-items-center rounded-full bg-black/70 text-white text-[13px] font-semibold pointer-events-none">{fast}배속 ▶▶</span>}
     </div>
   )

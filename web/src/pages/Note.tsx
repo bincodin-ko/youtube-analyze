@@ -300,7 +300,7 @@ export default function NotePage() {
   const iconBtn = 'grid place-items-center size-9 rounded-lg hover:bg-subtle text-soft'
   return (
     <div className="flex flex-col h-screen">
-      {stage && <Stage ctl={ctl} slot={leftSlot}>
+      {stage && <Stage ctl={ctl} slot={leftSlot} hold={big}>
         {local ? <video {...mediaProps} className="size-full" /> : <div ref={host} className="size-full [&_iframe]:size-full" />}
       </Stage>}
       <div className="min-[1100px]:hidden flex h-11 border-b border-line shrink-0">

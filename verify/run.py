@@ -123,8 +123,8 @@ def sc_note(pg, ex):
     ex(pg.locator("[data-report] h1").first).to_be_visible()  # 리포트
     ex(pg.get_by_role("button", name="스크립트", exact=True)).to_be_visible()  # 스크립트 패널
     ex(pg.get_by_placeholder("무엇이든 물어보세요")).to_be_visible()  # 채팅 패널
-    n = pg.get_by_role("heading", name="용어 풀이", exact=True).count()  # 시드 노트는 terms.json 있음 → 맨 끝에 정확히 한 번
-    assert n == (1 if json.loads((DATA / "media" / VIDEO / "terms.json").read_text(encoding="utf-8")) else 0), f"용어 풀이 {n}번 나옴"
+    # 시드 노트는 terms.json 있음 → 맨 끝에 정확히 한 번 (용어는 따로 불러와서 기다림)
+    ex(pg.get_by_role("heading", name="용어 풀이", exact=True)).to_have_count(1 if json.loads((DATA / "media" / VIDEO / "terms.json").read_text(encoding="utf-8")) else 0)
 def sc_article(pg, ex): ex(pg.locator("[data-report] h1").first).to_be_visible()
 def sc_mindmap(pg, ex):
     if not (DATA / "media" / VIDEO / "mindmap_normal.md").exists():
@@ -180,6 +180,17 @@ def sc_hold2x(pg, ex):
     pg.keyboard.up("Space")
     ex(st).to_have_attribute("data-fast", "0"); assert pg.evaluate("window.__vnRate").pop() == 1, "속도 복귀 안 됨"
     assert pg.locator("[data-stage-cover]").count() == 0, "덮개가 유튜브 버튼(전체화면 등)을 가림"
+def sc_big_hold(pg, ex):  # 크게 보기 때만 가운데 꾹 누르기 2배속(위아래 버튼 줄은 비움)
+    pg.get_by_role("button", name="크게 보기").last.click()
+    pg.wait_for_function("document.querySelector('[data-stage]').getBoundingClientRect().width >= 600")
+    st = _box(pg, "[data-stage]"); cv = _box(pg, "[data-stage-cover]")
+    assert cv["y"] >= st["y"] + 50 and cv["y"] + cv["height"] <= st["y"] + st["height"] - 50, f"덮개가 위아래 버튼 줄을 가림: {st} {cv}"
+    pg.mouse.move(cv["x"] + cv["width"] / 2, cv["y"] + cv["height"] / 2); pg.mouse.down(); pg.wait_for_timeout(600)
+    ex(pg.locator("[data-stage]")).to_have_attribute("data-fast", "2")
+    pg.mouse.up(); ex(pg.locator("[data-stage]")).to_have_attribute("data-fast", "0")
+    assert pg.evaluate("window.__vnRate").pop() == 1, "속도 복귀 안 됨"
+    pg.get_by_role("button", name="작게 보기").last.click()
+    ex(pg.locator("[data-stage-cover]")).to_have_count(0)
 def sc_space_input(pg, ex):
     pg.get_by_placeholder("무엇이든 물어보세요").click(); pg.keyboard.down("Space"); pg.wait_for_timeout(600)
     ex(pg.locator("[data-stage]")).to_have_attribute("data-fast", "0"); pg.keyboard.up("Space")
@@ -201,6 +212,25 @@ def sc_real2x(pg, ex):  # --online: 실제 유튜브. 영상 클릭→재생, �
     f.locator("button[aria-label='전체 화면 열기'], .ytp-fullscreen-button").first.click(timeout=5000); pg.wait_for_timeout(1000)
     assert pg.evaluate("document.fullscreenElement && document.fullscreenElement.tagName") == "IFRAME", "유튜브 전체화면 버튼이 안 먹음"
 
+def sc_real_big(pg, ex):  # --online: 크게 보기에서 가운데 짧게 누르기=재생, 꾹=2배, 전체화면 버튼은 그대로
+    pg.get_by_role("button", name="크게 보기").last.click()
+    pg.wait_for_function("document.querySelector('[data-stage]').getBoundingClientRect().width >= 600")
+    pg.frame_locator("[data-stage] iframe").first.locator("video").wait_for(state="attached", timeout=30000)
+    cv = _box(pg, "[data-stage-cover]"); x, y = cv["x"] + cv["width"] / 2, cv["y"] + cv["height"] / 2
+    pg.mouse.click(x, y); pg.wait_for_timeout(4000)
+    f = next(x for x in pg.frames if "youtube.com/embed" in x.url)
+    t = lambda: f.evaluate("() => document.querySelector('video').currentTime")
+    a = t(); pg.wait_for_timeout(3000); b = t()
+    pg.mouse.move(x, y); pg.mouse.down(); pg.wait_for_timeout(3000); c = t(); pg.mouse.up()
+    pg.wait_for_timeout(500); rate = f.evaluate("() => document.querySelector('video').playbackRate")
+    assert b - a > 2, f"가운데 클릭으로 재생 안 됨: 3초 동안 {b - a:.2f}초"
+    assert c - b > 1.6 * (b - a), f"꾹 누르기 2배속 안 됨: 1배속 {b - a:.2f}초 / 누르는 동안 {c - b:.2f}초"
+    assert rate == 1, f"떼고 나서 속도 {rate}"
+    st = _box(pg, "[data-stage]"); pg.mouse.move(st["x"] + st["width"] - 30, st["y"] + st["height"] - 20); pg.wait_for_timeout(500)
+    fb = f.locator("button[aria-label='전체 화면 열기'], .ytp-fullscreen-button").first
+    fb.click(timeout=5000); pg.wait_for_timeout(1000)
+    assert pg.evaluate("document.fullscreenElement && document.fullscreenElement.tagName") == "IFRAME", "크게 보기에서 전체화면 버튼이 안 먹음"
+
 
 ONLINE = "--online" in sys.argv  # 실제 유튜브 접속이 필요한 시험(인터넷 상태에 따라 실패할 수 있어 기본에서 뺌)
 
@@ -219,8 +249,9 @@ SCENARIOS = [
     ("chat_time_on", f"/note/{VIDEO}", 1440, False, sc_chat_time_on),
     ("player_big", f"/note/{VIDEO}", 1440, False, sc_big),
     ("player_hold2x", f"/note/{VIDEO}", 1440, False, sc_hold2x),
+    ("player_big_hold", f"/note/{VIDEO}", 1440, False, sc_big_hold),
     ("player_space_input", f"/note/{VIDEO}", 1440, False, sc_space_input),
-] + ([("player_real_2x", f"/note/{VIDEO}", 1440, False, sc_real2x)] if ONLINE else [])
+] + ([("player_real_2x", f"/note/{VIDEO}", 1440, False, sc_real2x), ("player_real_big", f"/note/{VIDEO}", 1440, False, sc_real_big)] if ONLINE else [])
 
 
 class SkipCheck(Exception):
@@ -238,7 +269,7 @@ def run_ui(base):
         for name, path, w, dark, fn in SCENARIOS:
             blocked, errs = [], []
 
-            def route(r, *, blocked=blocked, online=name == "player_real_2x"):  # 키워드 전용: Playwright가 2번째 인자로 request를 넘김
+            def route(r, *, blocked=blocked, online=name.startswith("player_real")):  # 키워드 전용: Playwright가 2번째 인자로 request를 넘김
                 u = urlparse(r.request.url)
                 if u.hostname != "127.0.0.1" and not online:
                     return r.abort()  # 외부(유튜브 등) 차단 → 결정적
