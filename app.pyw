@@ -1,7 +1,7 @@
 """영상노트 데스크톱 창 — 서버를 이 프로세스 안에서 띄우고 전용 창(pywebview)으로 연다. 창을 닫으면 서버도 꺼짐.
 실행: backend\\.venv\\Scripts\\pythonw.exe app.pyw   (install.bat이 바탕화면 바로가기를 만든다)
 """
-import os, socket, sys, threading, time, urllib.request
+import json, os, socket, sys, threading, time, urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -14,15 +14,30 @@ PORTS = range(8765, 8776)
 ICON = ROOT / "app.ico"
 
 
+def code_stamp():
+    """backend/app/main.py의 code_stamp와 같은 계산"""
+    fs = [*(ROOT / "backend" / "app").glob("*.py"), ROOT / "web" / "dist" / "index.html"]
+    return max((f.stat().st_mtime for f in fs if f.exists()), default=0)
+
+
 def running_port():
-    """이미 떠 있는 영상노트(start.bat 등)가 있으면 그 포트"""
+    """이미 떠 있는 영상노트(start.bat 등)가 있으면 그 포트. 옛 코드로 떠 있으면 끄게 하고 새로 띄운다"""
     for p in PORTS:
+        u = f"http://127.0.0.1:{p}"
         try:
-            with urllib.request.urlopen(f"http://127.0.0.1:{p}/api/notes", timeout=1) as r:
-                if r.read(1) == b"[":
-                    return p
+            with urllib.request.urlopen(u + "/api/notes", timeout=1) as r:
+                if r.read(1) != b"[":
+                    continue
         except Exception:
-            pass
+            continue
+        try:
+            with urllib.request.urlopen(u + "/api/version", timeout=1) as r:
+                if json.load(r)["stamp"] >= code_stamp():
+                    return p
+            urllib.request.urlopen(urllib.request.Request(u + "/api/shutdown", b"", method="POST"), timeout=2)
+            time.sleep(1)  # 옛 서버가 포트를 놓을 때까지
+        except Exception:
+            pass  # /api/version이 없는 더 옛 서버 → 건드리지 않고 다른 빈 포트에 새로 띄움
 
 
 def free_port():

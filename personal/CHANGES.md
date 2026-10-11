@@ -2,6 +2,13 @@
 
 > 날짜순, 새 항목이 위. 두 칸: 「바뀐 점」(날짜·무엇·왜·어디) / 「참고 서비스(릴리스AI)와 달라진 점」(날짜 / 릴리스는 / 우리는 / 왜).
 
+## 2026-10-11 실제 유튜브 링크로 직접 돌려 본 오류 3개 수정
+- 무엇 1: 말소리 없는 영상(요리 쇼츠 등)은 음성 인식 0문단 → 요약 실패인데 「완료」로 저장돼 화면이 「장면 캡처 중」에서 영원히 멈춤. → 영상 설명글(링크·해시태그 줄 제외)을 대본 대신 사용, 설명글도 없으면 이유를 적은 오류. 요약이 없으면 「완료」 대신 오류로 끝냄. 화면도 완료+요약 없음이면 안내 문구 표시. 어디: backend/app/transcript.py fetch, backend/app/main.py process, web/src/pages/Note.tsx Progress 호출
+- 무엇 2: 비공개·없는 재생목록이면 yt-dlp 영어 원문 오류가 그대로 보임 → 한국어 안내. 어디: backend/app/main.py playlist_preview
+- 무엇 3: 앱을 다시 켜도 8765~8775에 옛 코드 서버가 떠 있으면 그걸 재사용해 고친 내용이 적용 안 됨 → /api/version(코드 수정 시각) 비교, 옛 서버면 /api/shutdown으로 끄고 새로 띄움. 어디: app.pyw running_port, backend/app/main.py
+- 확인: 복사본 데이터 서버 + 설치된 Chrome headless로 「유튜브」 탭에 watch·youtu.be?si·&list=·shorts(말소리 있음/없음)·m.youtube·비공개 재생목록 7건 입력, 실제 앱과 같은 WebView2(숨긴 창)에서 노트 화면·유튜브 재생(시간 흐름) 확인
+- 남은 점: 같은 영상을 여러 번 넣으면 노트가 여러 개 생김(중복 막기 없음)
+
 ## 2026-10-11 verify --online 추가
 - 무엇: verify/run.py에 `--online` 옵션과 player_real_2x 시나리오(실제 유튜브 재생, 1배속 대비 스페이스 누르는 동안 1.6배 이상 빠른지 video.currentTime으로 측정). route 함수 인자를 키워드 전용으로(Playwright가 request를 2번째 인자로 넘기던 버그)
 - 왜: 인터넷 차단 때문에 사용자에게 넘기던 실제 재생 확인을 자동화

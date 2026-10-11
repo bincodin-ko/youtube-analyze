@@ -115,11 +115,18 @@ def fetch(url, work, force_asr=False):
                     if i == 2: raise
         else:
             lang, lines, src = _asr(url, Path(work))
+    tr = group(lines)
+    if not tr:  # 말소리 없는 영상(요리 쇼츠 등) → 영상 설명글로 대신(링크·해시태그 줄은 뺌)
+        desc = [l.strip() for l in (info.get("description") or "").splitlines() if l.strip() and not re.match(r"(https?://|#)", l.strip())]
+        if not desc:
+            raise RuntimeError("말소리·자막·설명글이 모두 없는 영상이라 요약할 수 없어요")
+        tr = [{"start": 0, "end": info.get("duration") or 0, "text": l} for l in desc[:200]]
+        src, lang = "description", "ko" if re.search(r"[가-힣]", " ".join(desc)) else lang
     d = info.get("upload_date") or ""
     return {"video_id": info["id"], "title": info.get("title"), "channel": info.get("channel") or info.get("uploader"),
             "thumbnail": info.get("thumbnail"), "duration": info.get("duration"),
             "upload_date": f"{d[:4]}-{d[4:6]}-{d[6:]}" if len(d) == 8 else None,
-            "lang": lang, "transcript": group(lines), "source": src}
+            "lang": lang, "transcript": tr, "source": src}
 
 
 def playlist(url, limit=10):

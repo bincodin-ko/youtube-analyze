@@ -24,6 +24,26 @@ MEDIA.mkdir(parents=True, exist_ok=True)
 db.init()
 
 app = FastAPI()
+
+
+def code_stamp():
+    """코드·화면 파일의 가장 최근 수정 시각. 앱이 옛 코드로 떠 있는 서버를 알아보는 데 씀(app.pyw와 같은 계산)"""
+    fs = [*(ROOT / "backend" / "app").glob("*.py"), ROOT / "web" / "dist" / "index.html"]
+    return max((f.stat().st_mtime for f in fs if f.exists()), default=0)
+
+
+STAMP = code_stamp()
+
+
+@app.get("/api/version")
+def version():
+    return {"stamp": STAMP}
+
+
+@app.post("/api/shutdown")
+def shutdown():  # 옛 코드 서버를 새 앱이 끌 때만 씀(127.0.0.1 전용 서버)
+    threading.Timer(0.3, os._exit, [0]).start()
+    return {"ok": True}
 try:
     from app import chat
     app.include_router(chat.router)
@@ -79,6 +99,8 @@ def process(nid):
                 note["report"], msg = None, f"요약 실패: {e}"
             db.update(nid, report=note["report"])
             emit(nid, "summary", "done", msg or f"{time.time() - t:.1f}초")
+            if not note["report"]:  # 요약 없이 "완료"로 두면 화면이 진행 중에서 멈춤 → 오류로 끝냄
+                raise RuntimeError(msg or "요약을 만들지 못했어요")
 
         db.update(nid, step="scenes")
         emit(nid, "scenes")
@@ -218,7 +240,8 @@ def playlist_preview(body: Url):
     try:
         return transcript.playlist(body.url)
     except Exception as e:
-        raise HTTPException(400, f"재생목록을 불러오지 못했어요: {e}")
+        why = "비공개이거나 삭제된 재생목록이에요. 공개 재생목록 링크나 영상 링크를 넣어 주세요" if "does not exist" in str(e) or "private" in str(e).lower() else str(e)
+        raise HTTPException(400, f"재생목록을 불러오지 못했어요: {why}")
 
 
 class Video(BaseModel):

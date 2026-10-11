@@ -358,7 +358,7 @@ export default function NotePage() {
           <div data-report className="max-w-[560px] mx-auto px-5 min-[1100px]:px-[60px] pb-24">
             {styleErr && <p className="mt-4 text-[14px] text-muted">{styleErr}</p>}
             {note.status !== 'done' || !r ? (
-              <Progress kind={note.kind} id={note.id} initial={note.step} error={note.error} onDone={reload} />
+              <Progress kind={note.kind} id={note.id} initial={note.step} error={note.error ?? (note.status === 'done' ? '요약을 만들지 못했어요. 노트를 지우고 다시 넣어 주세요.' : null)} onDone={reload} />
             ) : styleBusy ? (
               <div className="pt-24 flex items-center gap-3 text-[16px]"><Loader2 size={18} className="animate-spin" />리포트를 다시 쓰는 중이에요 (30~60초)</div>
             ) : mode === 'expand' ? (
