@@ -263,9 +263,9 @@ export default function NotePage() {
   const { host, seek: ytSeek, player } = usePlayer(art || local ? undefined : note?.video_id, setTime)
   // 크게 보기(localStorage 유지) · 영상 자리표시자와 리포트 영역 ref (Stage가 따라다님)
   const [big, setBig] = useState(() => { try { return localStorage.getItem('vn-big') === '1' } catch { return false } })
-  const toggleBig = () => setBig((b) => { try { localStorage.setItem('vn-big', b ? '0' : '1') } catch { /* 저장 불가 */ } return !b })
-  useEffect(() => { if (!big) return; const p = left; setLeft(false); return () => setLeft(p) }, [big]) // eslint-disable-line react-hooks/exhaustive-deps -- 크게 보기 동안 왼쪽 열 접기
-  const leftSlot = useRef<HTMLDivElement>(null), centerSlot = useRef<HTMLDivElement>(null), reportSec = useRef<HTMLElement>(null)
+  const toggleBig = () => setBig((b) => { if (!b) setLeft(true) // 크게 보기 = 왼쪽 영상·스크립트 칸을 넓힘(접혀 있으면 펼침)
+    try { localStorage.setItem('vn-big', b ? '0' : '1') } catch { /* 저장 불가 */ } return !b })
+  const leftSlot = useRef<HTMLDivElement>(null)
   const ctl = useMemo<Ctl>(() => ({
     get: () => media.current?.playbackRate ?? player.current?.getPlaybackRate?.() ?? 1,
     set: (n) => { (window.__vnRate ??= []).push(n); if (media.current) media.current.playbackRate = n; else player.current?.setPlaybackRate?.(n) },
@@ -300,7 +300,7 @@ export default function NotePage() {
   const iconBtn = 'grid place-items-center size-9 rounded-lg hover:bg-subtle text-soft'
   return (
     <div className="flex flex-col h-screen">
-      {stage && <Stage ctl={ctl} left={leftSlot} center={centerSlot} section={reportSec} big={big}>
+      {stage && <Stage ctl={ctl} slot={leftSlot}>
         {local ? <video {...mediaProps} className="size-full" /> : <div ref={host} className="size-full [&_iframe]:size-full" />}
       </Stage>}
       <div className="min-[1100px]:hidden flex h-11 border-b border-line shrink-0">
@@ -310,12 +310,12 @@ export default function NotePage() {
       </div>
       <div className="flex flex-1 min-h-0">
         {/* 왼쪽 330 */}
-        <section className={`${tab === 'video' ? 'flex' : 'hidden'} ${left ? 'min-[1100px]:flex' : 'min-[1100px]:hidden'} flex-col w-full min-[1100px]:w-[330px] shrink-0 border-r border-line min-h-0`}>
+        <section className={`${tab === 'video' ? 'flex' : 'hidden'} ${left ? 'min-[1100px]:flex' : 'min-[1100px]:hidden'} flex-col w-full ${big ? 'min-[1100px]:w-[min(46vw,calc(100vw-770px))]' : 'min-[1100px]:w-[330px]'} shrink-0 border-r border-line min-h-0`}>
           <div className="flex items-center gap-2 h-12 px-3 shrink-0">
             <button onClick={() => nav('/')} className={iconBtn + ' border border-line'} title="홈"><PanelLeft size={18} strokeWidth={1.5} /></button>
             <button onClick={() => nav('/new')} className="h-8 px-3.5 rounded-full bg-fg text-bg text-[14px] font-semibold">새로 만들기</button>
             <List size={19} className="text-muted ml-2" strokeWidth={1.5} />
-            {stage && <button onClick={toggleBig} aria-label="크게 보기" title="크게 보기" className="ml-auto hidden min-[1100px]:grid place-items-center size-8 rounded-lg border border-line text-soft hover:bg-subtle"><Maximize2 size={14} /></button>}
+            {stage && <button onClick={toggleBig} aria-label={big ? '작게 보기' : '크게 보기'} title={big ? '작게 보기' : '크게 보기'} className="ml-auto hidden min-[1100px]:grid place-items-center size-8 rounded-lg border border-line text-soft hover:bg-subtle">{big ? <Minimize2 size={14} /> : <Maximize2 size={14} />}</button>}
             <button onClick={() => setLeft(false)} className={`${stage ? '' : 'ml-auto '}hidden min-[1100px]:grid place-items-center size-8 text-soft`} title="접기"><ChevronsLeft size={18} /></button>
           </div>
           {art ? <ArticlePanel note={note} hl={hl} open={srcOpen} setOpen={setSrcOpen} /> : <>
@@ -326,7 +326,7 @@ export default function NotePage() {
               <p className="text-[14px] truncate">{note.channel}</p>
               {note.upload_date && <p className="text-[13px] text-muted mt-0.5">{date[0]}. {date[1]}. {date[2]}.</p>}
             </div>
-            {stage && <button onClick={toggleBig} className="ml-auto hidden min-[1100px]:flex items-center gap-1 h-8 px-2.5 shrink-0 whitespace-nowrap rounded-lg border border-line text-[13px] text-soft hover:bg-subtle"><Maximize2 size={14} />크게 보기</button>}
+            {stage && <button onClick={toggleBig} className="ml-auto hidden min-[1100px]:flex items-center gap-1 h-8 px-2.5 shrink-0 whitespace-nowrap rounded-lg border border-line text-[13px] text-soft hover:bg-subtle">{big ? <><Minimize2 size={14} />작게 보기</> : <><Maximize2 size={14} />크게 보기</>}</button>}
           </div>
           {!local && <Clips videoId={note.video_id} seek={seek} />}
           <Script note={note} time={time} seek={seek} />
@@ -334,7 +334,7 @@ export default function NotePage() {
         </section>
 
         {/* 가운데 리포트 */}
-        <section ref={reportSec} className={`${tab === 'report' ? 'block' : 'hidden'} min-[1100px]:block @container flex-1 min-w-0 overflow-y-auto scroll-thin`}>
+        <section className={`${tab === 'report' ? 'block' : 'hidden'} min-[1100px]:block @container flex-1 min-w-0 overflow-y-auto scroll-thin`}>
           <div className="sticky top-0 z-10 bg-bg flex items-center gap-1 h-12 px-3 border-b border-line">
             {!left && <button onClick={() => setLeft(true)} className={iconBtn + ' hidden min-[1100px]:grid'} title="펼치기"><ChevronsRight size={18} /></button>}
             <div className="flex rounded-lg border border-line overflow-hidden text-[14px] mr-1">
@@ -351,11 +351,7 @@ export default function NotePage() {
               {!right && <button onClick={() => setRight(true)} className={iconBtn + ' hidden min-[1100px]:grid'} title="펼치기"><ChevronsLeft size={18} /></button>}
             </div>
           </div>
-          {big && stage && <div className="hidden min-[1100px]:block max-w-[960px] mx-auto px-5 pt-4">
-            <div ref={centerSlot} className="aspect-video w-full bg-black" />
-            <div className="flex justify-end pt-2"><button onClick={toggleBig} className="flex items-center gap-1 h-8 px-2.5 rounded-lg border border-line text-[13px] text-soft hover:bg-subtle"><Minimize2 size={14} />작게 보기</button></div>
-          </div>}
-          <div data-report className="max-w-[560px] mx-auto px-5 min-[1100px]:px-[60px] pb-24">
+          <div data-report className={`max-w-[560px] mx-auto px-5 ${big ? '' : 'min-[1100px]:px-[60px]'} pb-24`}>
             {styleErr && <p className="mt-4 text-[14px] text-muted">{styleErr}</p>}
             {note.status !== 'done' || !r ? (
               <Progress kind={note.kind} id={note.id} initial={note.step} error={note.error ?? (note.status === 'done' ? '요약을 만들지 못했어요. 노트를 지우고 다시 넣어 주세요.' : null)} onDone={reload} />
@@ -409,13 +405,13 @@ export default function NotePage() {
                             {c.bullets.map((b, i) => (
                               <li key={i}><RichT text={b.text} terms={terms} seen={seen} />{b.refs.map((n) => <Ref key={n} n={n} note={note} seek={seek} />)}</li>
                             ))}
-                <TermList terms={terms} />
                           </ol>
                         </div>
                       )
                     })}
                   </div>
                 ))}
+                <TermList terms={terms} />
               </>
             )}
           </div>

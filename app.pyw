@@ -103,6 +103,18 @@ def start_server(window):
     window.load_url(f"http://127.0.0.1:{port}")
 
 
+class Api:
+    """화면(JS)이 부르는 창 기능: window.pywebview.api.fullscreen(true/false)"""
+    window = None
+    on = False
+
+    def fullscreen(self, on):
+        # 유튜브 전체화면은 WebView 안만 채움 → 창도 같이 전체화면(모니터 전체)
+        if bool(on) != self.on and self.window:
+            self.on = bool(on)
+            self.window.toggle_fullscreen()
+
+
 def main():
     if not ICON.exists():
         make_icon()
@@ -113,7 +125,9 @@ def main():
     except Exception:
         pass
     # text_select=True: pywebview 기본값(False)은 글자 선택·복사를 막는다
-    w = webview.create_window("영상노트", html=LOADING, width=1440, height=900, min_size=(900, 600), background_color="#f4f5f4", text_select=True)
+    api = Api()
+    w = webview.create_window("영상노트", html=LOADING, width=1440, height=900, min_size=(900, 600), background_color="#f4f5f4", text_select=True, js_api=api)
+    api.window = w
     webview.start(start_server, w, icon=str(ICON))
 
 

@@ -1,7 +1,7 @@
 """영상노트 verify: 빌드·린트 → 백엔드 자체 점검 → 시험 데이터 복사 → 빈 포트 서버 → Playwright headless 화면 시나리오.
 결과 .verify/summary.md + .verify/shots/*.png, 하나라도 실패하면 exit 1. 실제 data/는 읽기만 한다.
 실행: verify.bat (= uv run --project backend python verify/run.py)"""
-import os, shutil, socket, sqlite3, subprocess, sys, time, urllib.request
+import json, os, shutil, socket, sqlite3, subprocess, sys, time, urllib.request
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -123,6 +123,8 @@ def sc_note(pg, ex):
     ex(pg.locator("[data-report] h1").first).to_be_visible()  # 리포트
     ex(pg.get_by_role("button", name="스크립트", exact=True)).to_be_visible()  # 스크립트 패널
     ex(pg.get_by_placeholder("무엇이든 물어보세요")).to_be_visible()  # 채팅 패널
+    n = pg.get_by_role("heading", name="용어 풀이", exact=True).count()  # 시드 노트는 terms.json 있음 → 맨 끝에 정확히 한 번
+    assert n == (1 if json.loads((DATA / "media" / VIDEO / "terms.json").read_text(encoding="utf-8")) else 0), f"용어 풀이 {n}번 나옴"
 def sc_article(pg, ex): ex(pg.locator("[data-report] h1").first).to_be_visible()
 def sc_mindmap(pg, ex):
     if not (DATA / "media" / VIDEO / "mindmap_normal.md").exists():
@@ -161,21 +163,15 @@ def sc_dark(pg, ex):
 def _box(pg, sel):
     pg.wait_for_function("s => { const e = document.querySelector(s); return e && e.getBoundingClientRect().width > 0 }", arg=sel)
     return pg.locator(sel).first.bounding_box()
-def sc_big(pg, ex):
-    pg.get_by_role("button", name="크게 보기").first.click()
-    pg.wait_for_function("document.querySelector('[data-stage]').getBoundingClientRect().width >= 800")
+def sc_big(pg, ex):  # 크게 보기 = 왼쪽 영상·스크립트 칸이 넓어지고 리포트는 오른쪽에 그대로(겹침 없음)
+    pg.get_by_role("button", name="크게 보기").last.click()
+    pg.wait_for_function("document.querySelector('[data-stage]').getBoundingClientRect().width >= 600")
     b = _box(pg, "[data-stage]"); h = pg.locator("[data-report] h1").first
-    ex(h).to_be_visible()
-    assert b["width"] >= 800 and h.bounding_box()["y"] >= b["y"] + b["height"] - 1, f"크게 보기 폭/리포트 위치 이상: {b}"
-def sc_pip(pg, ex):
-    pg.get_by_role("button", name="크게 보기").first.click()
-    pg.wait_for_function("document.querySelector('[data-stage]').getBoundingClientRect().width >= 800")
-    pg.evaluate("document.querySelector('section.overflow-y-auto').scrollTop = 900")
-    ex(pg.locator("[data-stage]")).to_have_attribute("data-pip", "1")
-    pg.wait_for_timeout(300); b = pg.locator("[data-stage]").bounding_box()
-    assert b["x"] >= 0 and b["y"] >= 0 and b["x"] + b["width"] <= 1440 and b["y"] + b["height"] <= 900, f"PIP 화면 밖: {b}"
-    c = pg.get_by_placeholder("무엇이든 물어보세요").bounding_box()
-    assert b["x"] + b["width"] <= c["x"] or b["y"] + b["height"] <= c["y"], f"PIP가 채팅 입력창을 가림: {b} {c}"
+    ex(h).to_be_visible(); ex(pg.get_by_role("button", name="스크립트", exact=True)).to_be_visible()
+    hb = h.bounding_box()
+    assert b["width"] >= 600 and hb["x"] >= b["x"] + b["width"], f"크게 보기 폭/리포트 겹침: {b} {hb}"
+    pg.get_by_role("button", name="작게 보기").last.click()
+    pg.wait_for_function("document.querySelector('[data-stage]').getBoundingClientRect().width < 400")
 def sc_hold2x(pg, ex):
     st = pg.locator("[data-stage]"); _box(pg, "[data-stage]")
     pg.keyboard.down("Space"); pg.wait_for_timeout(600)
@@ -183,28 +179,27 @@ def sc_hold2x(pg, ex):
     assert 2 in pg.evaluate("window.__vnRate"), "setPlaybackRate(2) 기록 없음"
     pg.keyboard.up("Space")
     ex(st).to_have_attribute("data-fast", "0"); assert pg.evaluate("window.__vnRate").pop() == 1, "속도 복귀 안 됨"
-    box = pg.locator("[data-stage-cover]").bounding_box()  # 마우스 꾹 누르기도 같은 동작
-    pg.mouse.move(box["x"] + 50, box["y"] + 50); pg.mouse.down(); pg.wait_for_timeout(700)
-    ex(st).to_have_attribute("data-fast", "2"); pg.mouse.up(); ex(st).to_have_attribute("data-fast", "0")
+    assert pg.locator("[data-stage-cover]").count() == 0, "덮개가 유튜브 버튼(전체화면 등)을 가림"
 def sc_space_input(pg, ex):
     pg.get_by_placeholder("무엇이든 물어보세요").click(); pg.keyboard.down("Space"); pg.wait_for_timeout(600)
     ex(pg.locator("[data-stage]")).to_have_attribute("data-fast", "0"); pg.keyboard.up("Space")
     assert not pg.evaluate("window.__vnRate || []"), "입력창 포커스인데 속도가 바뀜"
 
-def sc_real2x(pg, ex):  # --online: 실제 유튜브 재생 시간이 꾹 누르는 동안 2배로 흐르는지(iframe 안 video를 직접 읽음)
-    pg.get_by_role("button", name="크게 보기").first.click()
-    fr = pg.frame_locator("[data-stage] iframe").first
-    v = fr.locator("video"); v.wait_for(state="attached", timeout=30000)
-    pg.locator("[data-stage] iframe").first.evaluate("f => f.contentWindow.postMessage(JSON.stringify({event: 'command', func: 'playVideo', args: []}), '*')")  # 유튜브 임베드 공식 명령으로 재생
-    v.evaluate("v => { v.muted = true; v.play().catch(() => {}) }")  # play() 약속을 기다리지 않음(광고·차단 시 영원히 대기)
-    pg.wait_for_timeout(3000)  # 광고·버퍼링 여유
-    t = lambda: v.evaluate("v => v.currentTime")
+def sc_real2x(pg, ex):  # --online: 실제 유튜브. 영상 클릭→재생, 스페이스 누르는 동안 2배, 유튜브 전체화면 버튼 동작
+    st = _box(pg, "[data-stage]")
+    pg.frame_locator("[data-stage] iframe").first.locator("video").wait_for(state="attached", timeout=30000)
+    pg.mouse.click(st["x"] + st["width"] / 2, st["y"] + st["height"] / 2); pg.wait_for_timeout(4000)  # 광고·버퍼링 여유
+    f = next(x for x in pg.frames if "youtube.com/embed" in x.url)
+    t = lambda: f.evaluate("() => document.querySelector('video').currentTime")
     a = t(); pg.wait_for_timeout(3000); b = t()
-    pg.evaluate("document.activeElement && document.activeElement.blur()"); pg.keyboard.down("Space"); pg.wait_for_timeout(3000); c = t(); pg.keyboard.up("Space")
-    pg.wait_for_timeout(500); rate = v.evaluate("v => v.playbackRate")
-    assert b - a > 2, f"1배속 재생 안 됨: 3초 동안 {b - a:.2f}초"
-    assert c - b > 1.6 * (b - a), f"2배속 안 됨: 1배속 {b - a:.2f}초 / 누르는 동안 {c - b:.2f}초"
+    pg.keyboard.down("Space"); pg.wait_for_timeout(3000); c = t(); pg.keyboard.up("Space")
+    pg.wait_for_timeout(500); rate = f.evaluate("() => document.querySelector('video').playbackRate")
+    assert b - a > 2, f"영상 클릭으로 재생 안 됨: 3초 동안 {b - a:.2f}초"
+    assert c - b > 1.6 * (b - a), f"2배속 안 됨(영상 클릭 뒤 스페이스): 1배속 {b - a:.2f}초 / 누르는 동안 {c - b:.2f}초"
     assert rate == 1, f"떼고 나서 속도 {rate}"
+    pg.mouse.move(st["x"] + 20, st["y"] + 20); pg.wait_for_timeout(300)
+    f.locator("button[aria-label='전체 화면 열기'], .ytp-fullscreen-button").first.click(timeout=5000); pg.wait_for_timeout(1000)
+    assert pg.evaluate("document.fullscreenElement && document.fullscreenElement.tagName") == "IFRAME", "유튜브 전체화면 버튼이 안 먹음"
 
 
 ONLINE = "--online" in sys.argv  # 실제 유튜브 접속이 필요한 시험(인터넷 상태에 따라 실패할 수 있어 기본에서 뺌)
@@ -223,7 +218,6 @@ SCENARIOS = [
     ("chat_time_off", f"/note/{VIDEO}", 1440, False, sc_chat_time_off),
     ("chat_time_on", f"/note/{VIDEO}", 1440, False, sc_chat_time_on),
     ("player_big", f"/note/{VIDEO}", 1440, False, sc_big),
-    ("player_pip", f"/note/{VIDEO}", 1440, False, sc_pip),
     ("player_hold2x", f"/note/{VIDEO}", 1440, False, sc_hold2x),
     ("player_space_input", f"/note/{VIDEO}", 1440, False, sc_space_input),
 ] + ([("player_real_2x", f"/note/{VIDEO}", 1440, False, sc_real2x)] if ONLINE else [])
