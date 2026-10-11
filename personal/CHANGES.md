@@ -4,6 +4,11 @@
 
 ## 바뀐 점
 
+#### 2026-10-11 유튜브 탭 링크 7종 허용 · 채팅 [시간] 표시 토글
+##### 바뀐 점
+- web/src/api.ts: `isListUrl`이 영상 ID가 있는 링크(`watch?v=..&list=..`)는 재생목록으로 보지 않음(원인: list= 가 있으면 무조건 목록 미리보기로 가서 「소화하기」가 안 나옴). `ytId`에 `live/` 추가. 재생목록 전용(`playlist?list=`)·채널 링크는 그대로 목록 미리보기.
+- web/src/components/Chat.tsx: 입력창 아래 「시간 표시」 스위치(aria-pressed, 포커스 링). 끄면 답변의 [n] 버튼과 앞 공백을 지움. localStorage `chatTime`(try/catch)로 기억, 기본 켜짐.
+- verify/run.py: 시나리오 3개 추가(new_yt_links 7종, chat_time_off 새로고침 유지, chat_time_on). 전체 21/21.
 #### 2026-10-11 headless verify (verify.bat) · 데이터 경로 환경변수화
 ##### 바뀐 점
 - backend/app/paths.py(새 파일): 데이터 폴더를 한 곳에서 정함 — 환경변수 `VN_DATA_DIR`, 없으면 기존 프로젝트/data. 왜: verify·worktree가 각자 데이터 폴더를 써야 동시 실행이 안전함(server.lock도 그 폴더 기준이라 자동으로 분리).

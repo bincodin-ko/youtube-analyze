@@ -132,6 +132,26 @@ def sc_mindmap(pg, ex):
 def sc_narrow_chat(pg, ex):
     pg.get_by_role("button", name="채팅", exact=True).first.click()
     ex(pg.get_by_placeholder("무엇이든 물어보세요")).to_be_visible()
+YT7 = ["https://www.youtube.com/watch?v=dQw4w9WgXcQ", "https://youtu.be/dQw4w9WgXcQ", "https://youtu.be/dQw4w9WgXcQ?si=abcDEF123",
+       "https://www.youtube.com/shorts/dQw4w9WgXcQ", "https://www.youtube.com/live/dQw4w9WgXcQ", "https://m.youtube.com/watch?v=dQw4w9WgXcQ",
+       "https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=PLabcdefghijk123&index=2"]
+def sc_yt_links(pg, ex):  # 유튜브 탭: 7종 링크 모두 「소화하기」 버튼이 나와야 함(누르지는 않음)
+    pg.get_by_role("button", name="유튜브").click()
+    box = pg.get_by_placeholder("https://youtube.com/watch?v=abc")
+    for u in YT7:
+        box.fill(u)
+        try: ex(pg.get_by_role("button", name="소화하기", exact=True)).to_be_visible()
+        except AssertionError: raise AssertionError("버튼 없음: " + u)
+def _times(pg): return pg.locator('button[title$="로 이동"]')
+def sc_chat_time_off(pg, ex):  # [시간] 끄기 → 0개 → 새로고침해도 유지
+    ex(_times(pg).first).to_be_visible()
+    t = pg.get_by_role("button", name="시간 표시"); t.click()
+    ex(t).to_have_attribute("aria-pressed", "false"); ex(_times(pg)).to_have_count(0)
+    pg.reload(); ex(pg.get_by_role("button", name="시간 표시")).to_have_attribute("aria-pressed", "false")
+    ex(pg.get_by_text("AI 에이전트").first).to_be_visible(); ex(_times(pg)).to_have_count(0)
+def sc_chat_time_on(pg, ex):  # 끄고 다시 켜면 [시간] 버튼이 돌아옴
+    t = pg.get_by_role("button", name="시간 표시"); t.click(); ex(_times(pg)).to_have_count(0)
+    t.click(); ex(t).to_have_attribute("aria-pressed", "true"); ex(_times(pg).first).to_be_visible()
 def sc_dark(pg, ex):
     ex(pg.locator("html")).to_have_class("dark")
     ex(pg.locator("[data-report] h1").first).to_be_visible()
@@ -147,6 +167,9 @@ SCENARIOS = [
     ("expand_mindmap", f"/note/{VIDEO}", 1440, False, sc_mindmap),
     ("narrow_chat_1000", f"/note/{VIDEO}", 1000, False, sc_narrow_chat),
     ("dark_note", f"/note/{VIDEO}", 1440, True, sc_dark),
+    ("new_yt_links", "/new", 1440, False, sc_yt_links),
+    ("chat_time_off", f"/note/{VIDEO}", 1440, False, sc_chat_time_off),
+    ("chat_time_on", f"/note/{VIDEO}", 1440, False, sc_chat_time_on),
 ]
 
 

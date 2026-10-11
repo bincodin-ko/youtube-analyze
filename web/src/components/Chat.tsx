@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowUp, AtSign, Check, Copy, Globe, Paperclip, Sparkles } from 'lucide-react'
+import { ArrowUp, AtSign, Check, Clock, Copy, Globe, Paperclip, Sparkles } from 'lucide-react'
 import { fmtTime, MOCK, type Note } from '../api'
 
 type Msg = { role: 'user' | 'assistant'; text: string; err?: boolean }
@@ -22,7 +22,8 @@ function CopyBtn({ text, className = '' }: { text: string; className?: string })
 }
 
 // 답 본문의 [n]을 보라 작은 버튼으로. 대본 범위 밖 번호는 숨김
-function Answer({ text, tr, seek }: { text: string; tr: Note['transcript']; seek: (t: number) => void }) {
+function Answer({ text, tr, seek, time }: { text: string; tr: Note['transcript']; seek: (t: number) => void; time: boolean }) {
+  if (!time) return <p className="whitespace-pre-wrap break-words text-[15px] leading-[1.75]">{text.replace(/ ?\[\d{1,5}\]/g, '')}</p> // 끄면 [n]을 지우고 앞 공백도 정리
   return (
     <p className="whitespace-pre-wrap break-words text-[15px] leading-[1.75]">
       {text.split(/\[(\d{1,5})\]/).map((p, k) => {
@@ -58,6 +59,9 @@ export default function Chat({ note, seek, quote }: { note: Note; seek: (t: numb
   const [q, setQ] = useState('')
   const [sugErr, setSugErr] = useState('')
   const box = useRef<HTMLDivElement>(null)
+  // [시간] 표시 켜기/끄기(브라우저에 기억)
+  const [time, setTime] = useState(() => { try { return localStorage.getItem('chatTime') !== '0' } catch { return true } })
+  const toggleTime = () => { setTime(!time); try { localStorage.setItem('chatTime', time ? '0' : '1') } catch { /* 저장 못 해도 이번 화면은 동작 */ } }
   const ready = note.status === 'done' && note.transcript.length > 0
 
   useEffect(() => {
@@ -127,7 +131,7 @@ export default function Chat({ note, seek, quote }: { note: Note; seek: (t: numb
           </div>
         ) : (
           <div key={i} className={`mt-4 ${m.err ? 'text-muted' : ''}`}>
-            {m.text ? <><Answer text={m.text} tr={note.transcript} seek={seek} /><CopyBtn text={m.text} /></> : <p className="text-[14px] text-muted animate-pulse">답변 작성 중…</p>}
+            {m.text ? <><Answer text={m.text} tr={note.transcript} seek={seek} time={time} /><CopyBtn text={m.text} /></> : <p className="text-[14px] text-muted animate-pulse">답변 작성 중…</p>}
           </div>
         ))}
       </div>
@@ -139,6 +143,8 @@ export default function Chat({ note, seek, quote }: { note: Note; seek: (t: numb
           <span className={icon} title="다음 단계"><Paperclip size={16} /></span>
           <span className={icon} title="다음 단계"><AtSign size={16} /></span>
           <span className={icon} title="다음 단계"><Globe size={16} /></span>
+          <button onClick={toggleTime} aria-pressed={time} title="답변의 [시간] 버튼 표시"
+            className={`flex items-center gap-1 h-7 px-2 rounded-md text-[12px] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-fg ${time ? 'bg-hl text-link font-semibold' : 'text-muted hover:bg-subtle'}`}><Clock size={14} />시간 표시</button>
           <span className="ml-auto mr-2 text-[14px] text-muted">일반</span>
           <button onClick={() => send(q)} disabled={!q.trim() || busy || !ready} title="보내기"
             className="grid place-items-center size-7 rounded-full bg-fg text-bg disabled:bg-line disabled:text-muted"><ArrowUp size={15} /></button>

@@ -48,7 +48,7 @@ const GRAY = "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http:/
 export const sceneSrc = (id: string, file: string) => (MOCK ? GRAY : `/media/${id}/${file}`)
 
 export const fmtTime = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`
-export const ytId = (u: string) => u.match(/(?:v=|youtu\.be\/|shorts\/|embed\/)([\w-]{11})/)?.[1]
+export const ytId = (u: string) => u.match(/(?:v=|youtu\.be\/|shorts\/|live\/|embed\/)([\w-]{11})/)?.[1]
 
 // ---- 보관함·검색·재생목록 ----
 async function j<T>(url: string, init?: RequestInit): Promise<T> {
@@ -72,8 +72,8 @@ export const moveNote = (nid: string, collection_id: number | null) => j(`/api/n
 export const search = (q: string) => j<SearchHit[]>(`/api/search?q=${encodeURIComponent(q)}`)
 export const previewPlaylist = (url: string) => j<PlaylistPreview>('/api/playlist/preview', send('POST', { url }))
 export const createPlaylist = (title: string, videos: { id: string; title: string }[]) => j<{ collection_id: number }>('/api/playlist', send('POST', { title, videos }))
-// 재생목록·채널 링크인지 (list= 또는 /@채널, /channel/, /c/)
-export const isListUrl = (u: string) => /youtube\.com\/.*[?&]list=[\w-]+|youtube\.com\/(@[^/?#]+|channel\/|c\/)/.test(u)
+// 재생목록·채널 링크인지 (영상 ID가 있으면 영상 하나로 처리. list= 또는 /@채널, /channel/, /c/)
+export const isListUrl = (u: string) => !ytId(u) && /youtube\.com\/.*[?&]list=[\w-]+|youtube\.com\/(@[^/?#]+|channel\/|c\/)/.test(u)
 // 사이드바 컬렉션 목록 새로고침 신호
 export const collectionsChanged = () => window.dispatchEvent(new Event('collections'))
 

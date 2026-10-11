@@ -51,3 +51,5 @@ Q. 다 승인(verify 계획·git init·완료 기준 4개) / 터미널 깜박임
 A. 진행: git init·verify 구축 후 기능 4개 구현, 깜박임은 보류로 기록.
 Q. (코디네이터) headless verify.bat 만들기·데이터 경로 환경변수화·worktree 2개 동시 실행 증명
 A. paths.py로 VN_DATA_DIR·VN_COMFY_PORT 도입, verify.bat+verify/run.py(18단계) 완성, 메인 18/18(35초)·worktree 2개 동시 18/18(62초) 통과, worktree 정리, 커밋.
+Q. (코디네이터) 유튜브 탭 링크 7종 허용 / 채팅 [시간] 표시 토글
+A. isListUrl이 영상 ID 있는 링크는 영상으로 처리하게 고치고 Chat.tsx에 토글 추가, verify 시나리오 3개 포함 21/21 통과.
