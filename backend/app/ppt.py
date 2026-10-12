@@ -87,6 +87,13 @@ def revise(media: Path, note: dict, deck: dict, changes: dict[int, str]) -> dict
     return {**deck, "slides": [new.get(i, s) for i, s in enumerate(deck["slides"])]}
 
 
+def _png(f: Path):
+    """python-pptx가 못 읽는 WEBP 등은 PNG로 바꿔 넘긴다."""
+    if f.suffix.lower() in (".png", ".jpg", ".jpeg"): return str(f)
+    from PIL import Image
+    b = io.BytesIO(); Image.open(f).save(b, "PNG"); b.seek(0); return b
+
+
 def to_pptx(deck: dict, logo: Path | None = None) -> bytes:
     """글자 편집 가능한 PPTX(16:9). 화면과 같은 색·레이아웃을 단순화해 상자로 배치."""
     from pptx import Presentation
@@ -130,7 +137,7 @@ def to_pptx(deck: dict, logo: Path | None = None) -> bytes:
                 pre = (lambda k: f"{k + 1}. ") if lay == "steps" else (lambda k: "• ")
                 box(sl, .06, .26, .88, .66, [pre(k) + p for k, p in enumerate(s["points"])], 20, t["fg"])
         if logo and logo.exists():
-            sl.shapes.add_picture(str(logo), int(W * .88), int(H * .88), height=int(H * .08))
+            sl.shapes.add_picture(_png(logo), int(W * .88), int(H * .88), height=int(H * .08))
     buf = io.BytesIO(); prs.save(buf); return buf.getvalue()
 
 
@@ -140,4 +147,8 @@ if __name__ == "__main__":  # 자체 점검: 2장 덱 → PPTX 바이트 → 다
     p = Presentation(io.BytesIO(to_pptx(d)))
     texts = [sh.text_frame.text for s in p.slides for sh in s.shapes if sh.has_text_frame]
     assert len(p.slides) == 2 and "표지" in texts and "A" in texts, texts
+    import tempfile
+    from PIL import Image
+    w = Path(tempfile.mkdtemp()) / "logo.webp"; Image.new("RGB", (40, 20), "red").save(w, "WEBP")
+    assert len(Presentation(io.BytesIO(to_pptx(d, w))).slides) == 2  # WEBP 로고도 PPTX에 들어감
     print("ok", len(p.slides), texts[:4])

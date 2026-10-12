@@ -585,6 +585,7 @@ def set_feedback(nid: str, key: str, v: int = 0):
 def del_ext(nid: str, key: str):
     from app import templates
     db.get(nid) or _404()
+    if not re.fullmatch(r"[A-Za-z0-9_]{1,40}", key): raise HTTPException(400, "잘못된 리포트 키")  # ..\ 같은 경로로 폴더 밖을 지우지 못하게
     templates.path(MEDIA, nid, key).unlink(missing_ok=True)
     shutil.rmtree(MEDIA / nid / f"ext_{key}", ignore_errors=True)  # 소제목 삽화
     if key == "podcast": shutil.rmtree(MEDIA / nid / "podcast", ignore_errors=True)

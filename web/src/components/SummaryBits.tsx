@@ -9,17 +9,22 @@ export function SummaryDiagram({ id }: { id: string }) {
   const [svg, setSvg] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [big, setBig] = useState(false)
+  const [fail, setFail] = useState(false)
+  const [n, setN] = useState(0) // 다시 시도 횟수
+  useEffect(() => { if (!big) return; const k = (e: KeyboardEvent) => { if (e.key === 'Escape') setBig(false) }; addEventListener('keydown', k); return () => removeEventListener('keydown', k) }, [big])
   useEffect(() => {
     let live = true
     fetch(`/api/notes/${id}/diagram`).then((r) => r.json()).then((d) => {
       if (!live) return
       if (d.svg) return setSvg(d.svg)
-      if (tried.has(id)) return
-      tried.add(id); setBusy(true)
-      fetch(`/api/notes/${id}/diagram`, { method: 'POST' }).then((r) => (r.ok ? r.json() : null)).then((x) => { if (live && x?.svg) setSvg(x.svg) }).catch(() => {}).finally(() => live && setBusy(false))
+      if (tried.has(id) && !n) return
+      tried.add(id); setBusy(true); setFail(false)
+      fetch(`/api/notes/${id}/diagram`, { method: 'POST' }).then((r) => (r.ok ? r.json() : null)).then((x) => { if (!live) return; if (x?.svg) setSvg(x.svg); else setFail(true) })
+        .catch(() => live && setFail(true)).finally(() => live && setBusy(false))
     }).catch(() => {})
     return () => { live = false }
-  }, [id])
+  }, [id, n])
+  if (!svg && fail && !busy) return <div data-diagram-fail="" className="mb-6 rounded-xl bg-subtle px-4 py-3 text-[14px] text-muted flex items-center gap-2">도식을 만들지 못했어요 <button onClick={() => setN(n + 1)} className="underline hover:text-fg">다시 시도</button></div>
   if (!svg) return busy ? <div data-diagram-busy="" className="mb-6 aspect-[16/9] rounded-xl bg-subtle grid place-items-center text-[14px] text-muted"><span className="flex items-center gap-2"><Loader2 size={16} className="animate-spin" />도식 그리는 중…</span></div> : null
   const src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
   return (

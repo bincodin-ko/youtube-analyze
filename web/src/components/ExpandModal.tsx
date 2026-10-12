@@ -1,6 +1,6 @@
 // "확장 리포트 추가" 창(릴리스 구성): 추천(☆가 있으면 「즐겨찾기」로 바뀜) · 나만의 템플릿 · 더 깊이 이해하기 · 시각자료 · 이해 점검하기 · 그 외(접기).
 // 같은 카드가 여러 칸에 나올 수 있고(릴리스와 같음) 선택은 키 기준. 이미 만든 것은 흐리게+못 누름. 영상 노트는 「중요 인용구」가 미리 선택.
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ChevronDown, Pencil, Plus, Settings, Star, Trash2, X } from 'lucide-react'
 import type { Tpls } from './Expand'
 
@@ -25,6 +25,7 @@ export default function ExpandModal({ tpls, made, youtube, article, onClose, onA
   const [more, setMore] = useState(true)
   const [form, setForm] = useState<{ key?: string; name: string; prompt: string } | null>(null)
   const [err, setErr] = useState('')
+  useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }; addEventListener('keydown', k); return () => removeEventListener('keydown', k) }, [onClose])
   const names = Object.fromEntries(tpls.builtin.map((t) => [t.key, t]))
   const toggle = (k: string) => setSel((s) => (s.includes(k) ? s.filter((x) => x !== k) : [...s, k]))
   const flip = (k: string) => setStar((s) => {

@@ -17,7 +17,10 @@ export function Podcast({ id, data, refs }: { id: string; data: Pod; refs: (rs: 
   const seen = new Set<string>()
   const n = data.paras.length
   const load = () => fetch(`/api/notes/${id}/podcast/audio`).then((r) => r.json()).then((s: St) => { setSt(s); if (!s.job?.busy) clearInterval(timer.current); return s }).catch(() => null)
-  useEffect(() => { load(); return () => clearInterval(timer.current) }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { // 새로고침했는데 음성을 만드는 중이면 이어서 2초마다 확인
+    load().then((s) => { if (s?.job?.busy) { clearInterval(timer.current); timer.current = window.setInterval(load, 2000) } })
+    return () => clearInterval(timer.current)
+  }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
   const file = new Map(st.ready) // 문단 번호 → 파일(p_0.mp3 또는 윈도우 음성 p_0.wav)
   const all = st.ready.length >= n
   const make = async () => {

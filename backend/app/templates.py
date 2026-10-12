@@ -236,7 +236,7 @@ def generate(note: dict, key: str, opts: dict | None = None) -> dict:
             bl = [{"icon": str(b.get("icon", "")), "heading": str(b["heading"]), "text": str(b["text"]), "stat": str(b.get("stat") or ""),
                    "ref": b["ref"] if isinstance(b.get("ref"), int) and 0 <= b["ref"] < n else None} for b in r["blocks"] if b.get("heading") and b.get("text")]
             if len(bl) < 2: raise ValueError("블록 부족")
-            out.update(subtitle=str(r.get("subtitle") or ""), layout=r["layout"] if r.get("layout") in LAYOUTS else "steps", blocks=bl[:6], takeaway=str(r.get("takeaway") or ""), style=style)
+            out.update(subtitle=str(r.get("subtitle") or ""), layout=r["layout"] if r.get("layout") in LAYOUTS else "steps", blocks=bl[:6], takeaway=str(r.get("takeaway") or ""), style=style, extra=str(opts.get("extra") or "")[:500])
         elif t["kind"] == "podcast":
             h = r.get("host") or {}
             ps = [{"text": str(p["text"]), "list": [str(x) for x in p.get("list") or []][:6], "refs": refs(p)} for p in r["paras"] if p.get("text")]

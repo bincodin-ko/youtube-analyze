@@ -133,7 +133,7 @@ export function PptPicker({ id, onClose, onMake }: { id: string; onClose: () => 
               <button onClick={() => remove(n)} aria-label="레퍼런스 빼기" className="absolute top-1 right-1 size-5 grid place-items-center rounded-full bg-black/60 text-white"><X size={12} /></button>
             </div>)}
             {refs.length < 4 && <label className="size-[72px] grid place-items-center rounded-lg border border-dashed border-line text-muted cursor-pointer hover:bg-subtle" title="이미지 넣기">
-              <ImagePlus size={20} /><input type="file" accept="image/png,image/jpeg,image/webp" multiple className="sr-only" aria-label="레퍼런스 이미지 넣기" onChange={(e) => upload(e.target.files)} />
+              <ImagePlus size={20} /><input type="file" accept="image/png,image/jpeg,image/webp" multiple className="sr-only" aria-label="레퍼런스 이미지 넣기" onChange={(e) => { upload(e.target.files); e.target.value = '' }} />
             </label>}
           </div>
           <p className="text-[12px] text-muted mt-2">로고·브랜드·스타일 이미지를 넣으면 슬라이드에 반영해요 (첫 장은 로고로 구석에 들어가요)</p>
@@ -209,10 +209,11 @@ function EditSlides({ id, deck, logo, at, onClose, onDone }: { id: string; deck:
   const todo = Object.values(ch).filter((v) => v.trim()).length
   const go = async () => {
     setBusy(true); setErr('')
-    const r = await fetch(`/api/notes/${id}/ppt/revise`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ changes: ch }) })
-    setBusy(false)
-    if (!r.ok) return setErr((await r.json().catch(() => null))?.detail || '수정본을 만들지 못했어요')
-    onDone(await r.json())
+    try {
+      const r = await fetch(`/api/notes/${id}/ppt/revise`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ changes: ch }) })
+      if (!r.ok) return setErr((await r.json().catch(() => null))?.detail || '수정본을 만들지 못했어요')
+      onDone(await r.json())
+    } catch { setErr('서버에 연결하지 못했어요. 앱이 켜져 있는지 확인해 다시 눌러 주세요') } finally { setBusy(false) }
   }
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>

@@ -482,6 +482,25 @@ def sc_narrow_modals(pg, ex):  # 작은 창(1000px 미만은 확장 탭이 탭 �
     pg.screenshot(path=str(SHOTS / "narrow_ppt.png"))
 
 
+# ---- 독립 검사(2026-10-13)에서 찾은 버그 재발 방지 ----
+def sc_inspector_fixes(pg, ex):
+    base = pg.url.split("/note/")[0]
+    r = pg.request.delete(f"{base}/api/notes/{VIDEO}/ext/..%5C..%5Cx")
+    assert r.status == 400, f"폴더 밖 경로 키가 거부되지 않음: {r.status}"
+    foot = pg.locator("[data-report] [data-foot]").last  # 요약 아래: 이미 만든 액션아이템은 추천에서 빠짐
+    ex(foot.get_by_role("button", name="중요 인용구 한눈에 보기")).to_have_count(1)
+    ex(foot.get_by_role("button", name="바로 적용할 수 있는 액션 아이템 도출")).to_have_count(0)
+    ex(pg.locator("[data-diagram-fail]")).to_be_visible()  # verify는 도식 생성(POST)을 막음 → 실패 표시 + 다시 시도
+    pg.get_by_role("button", name="확장", exact=True).first.click()
+    pg.get_by_role("button", name="확장 리포트 목록").click(); pg.get_by_role("button", name="확장 리포트 추가").click()
+    ex(pg.get_by_role("dialog", name="확장 리포트 추가")).to_be_visible(); pg.keyboard.press("Escape")
+    ex(pg.get_by_role("dialog", name="확장 리포트 추가")).to_have_count(0)
+    pg.goto(pg.url.split("?")[0] + "?ext=action")
+    pg.locator("[data-foot]").last.get_by_role("button", name="다시 만들기").click()
+    d = pg.get_by_role("dialog", name="다시 만들기 확인"); ex(d.get_by_role("button", name="다시 만들기")).to_be_focused()
+    pg.keyboard.press("Escape"); ex(d).to_have_count(0)
+
+
 ONLINE = "--online" in sys.argv
 APP = "--app" in sys.argv  # 실제 앱 창(WebView2) 검사  # 실제 유튜브 접속이 필요한 시험(인터넷 상태에 따라 실패할 수 있어 기본에서 뺌)
 
@@ -516,6 +535,7 @@ SCENARIOS = [
     ("ext_animation", f"/note/{VIDEO}", 1440, False, sc_animation),
     ("summary_bits", f"/note/{VIDEO}", 1440, False, sc_summary_bits),
     ("ext_narrow_390", f"/note/{VIDEO}", 390, False, sc_narrow_modals),
+    ("inspector_fixes", f"/note/{VIDEO}", 1440, False, sc_inspector_fixes),
 ] + ([("player_real_2x", f"/note/{VIDEO}", 1440, False, sc_real2x), ("player_real_big", f"/note/{VIDEO}", 1440, False, sc_real_big)] if ONLINE else [])
 
 

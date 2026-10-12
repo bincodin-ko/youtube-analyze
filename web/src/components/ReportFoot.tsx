@@ -26,9 +26,15 @@ export default function ReportFoot({ id, fkey, fb, onFb, onRedo, busy, text, fil
   const [copied, setCopied] = useState(false)
   const [cols, setCols] = useState<Collection[] | null>(null)
   const [col, setCol] = useState(collectionId ?? null)
+  const [copyErr, setCopyErr] = useState(false)
+  useEffect(() => setCol(collectionId ?? null), [collectionId]) // eslint-disable-line react-hooks/set-state-in-effect
+  useEffect(() => { if (!ask) return; const k = (e: KeyboardEvent) => { if (e.key === 'Escape') setAsk(false) }; addEventListener('keydown', k); return () => removeEventListener('keydown', k) }, [ask])
   const v = fb[fkey] ?? 0
   const ib = 'grid place-items-center size-9 rounded-lg text-muted hover:bg-subtle hover:text-fg disabled:opacity-40'
-  const copy = async () => { await navigator.clipboard.writeText(text()); setCopied(true); setTimeout(() => setCopied(false), 1500) }
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(text()); setCopied(true); setTimeout(() => setCopied(false), 1500) }
+    catch { setCopyErr(true); setTimeout(() => setCopyErr(false), 3000) }
+  }
   const download = () => {
     const a = document.createElement('a'); a.download = file
     a.href = URL.createObjectURL(new Blob([text()], { type: 'text/markdown;charset=utf-8' })); a.click(); URL.revokeObjectURL(a.href)
@@ -44,6 +50,7 @@ export default function ReportFoot({ id, fkey, fb, onFb, onRedo, busy, text, fil
           <ShareMenu id={id} ready className={ib} />
           <button aria-label="다운로드" title="Markdown으로 저장" onClick={download} className={ib}><Download size={16} /></button>
           <button aria-label="복사" title="복사" onClick={copy} className={ib}>{copied ? <Check size={16} /> : <Copy size={16} />}</button>
+          {copyErr && <span role="status" className="text-[12px] text-red-500 px-1">복사하지 못했어요</span>}
         </div>
       </div>
       <div className="relative mt-6 rounded-xl border border-line py-6 grid place-items-center gap-3 text-center">
@@ -71,7 +78,7 @@ export default function ReportFoot({ id, fkey, fb, onFb, onRedo, busy, text, fil
             <p className="mt-2 text-[14px] text-soft">지금 결과는 사라지고 새로 만들어요.</p>
             <div className="mt-5 flex justify-end gap-2">
               <button onClick={() => setAsk(false)} className="h-9 px-4 rounded-full border border-line text-[14px]">취소</button>
-              <button onClick={() => { setAsk(false); onRedo?.() }} className="h-9 px-4 rounded-full bg-fg text-bg text-[14px] font-semibold">다시 만들기</button>
+              <button autoFocus onClick={() => { setAsk(false); onRedo?.() }} className="h-9 px-4 rounded-full bg-fg text-bg text-[14px] font-semibold">다시 만들기</button>
             </div>
           </div>
         </div>

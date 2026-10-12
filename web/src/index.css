@@ -26,3 +26,6 @@ body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--
 }
 .scroll-thin::-webkit-scrollbar { width: 6px; }
 .scroll-thin::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+@keyframes vnbar { 0% { transform: translateX(-100%) } 100% { transform: translateX(300%) } }
+@media (prefers-reduced-motion: reduce) { [data-progress] span { animation: none !important } }

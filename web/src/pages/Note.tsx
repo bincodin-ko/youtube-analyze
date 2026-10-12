@@ -425,7 +425,7 @@ export default function NotePage() {
                 <TermList terms={terms} />
                 <ReportFoot id={note.id} fkey={`report_${style}`} fb={ex.fb.fb} onFb={ex.fb.set} collectionId={note.collection_id} file={`${note.title}-요약.md`}
                   text={() => [`# ${r.title}`, '', r.overview, '', ...r.key_points.map((k) => `- ${k}`), ...r.sections.flatMap((s) => ['', `## ${s.title}`, ...s.children.flatMap((c) => [`### ${c.title}`, ...c.bullets.map((b) => `- ${b.text}`)])])].join('\n')}
-                  sugg={[['quote', '중요 인용구 한눈에 보기'], ['action', '바로 적용할 수 있는 액션 아이템 도출'], ['background', '관련 배경지식 심층 탐색']].map(([key, label]) => ({ key, label }))}
+                  sugg={[['quote', '중요 인용구 한눈에 보기'], ['action', '바로 적용할 수 있는 액션 아이템 도출'], ['background', '관련 배경지식 심층 탐색'], ['deep', '자료를 바탕으로 추가 리서치 수행'], ['counter', '반대 시각으로 균형 있게 이해']].filter(([k]) => !ex.exts[k] && !ex.busy.includes(k)).slice(0, 3).map(([key, label]) => ({ key, label }))}
                   onSugg={(k) => { setMode('expand'); ex.add([k]) }} />
               </>
             )}

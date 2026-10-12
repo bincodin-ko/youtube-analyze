@@ -150,7 +150,7 @@ def start(media: Path, note: dict, only: int | None = None, style: str | None = 
                 sb = json.loads(f.read_text(encoding="utf-8")); idx = [only]
                 if sb["mode"] != "ai": return
             else:
-                sb = {"kind": "cartoon", **storyboard(note, extra), "style": style if style in STYLES else "webtoon"}; idx = list(range(len(sb["panels"])))
+                sb = {"kind": "cartoon", **storyboard(note, extra), "style": style if style in STYLES else "webtoon", "extra": (extra or "")[:500]}; idx = list(range(len(sb["panels"])))
                 shutil.rmtree(d, ignore_errors=True)
                 sb["mode"] = "ai" if installed() else "simple"
                 _save(media, nid, sb)

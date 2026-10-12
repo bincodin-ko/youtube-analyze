@@ -56,10 +56,8 @@ export function useExpand(id: string, on: boolean, onMindmap: () => void) {
   const syncUrl = (expand: boolean) => writeUrl(expand ? cur : null)
   const loadTpls = useCallback(() => { call<Tpls>('/api/templates').then(setTpls).catch(() => {}) }, [])
   const loadExts = useCallback(() => call<Record<string, Ext>>(`/api/notes/${id}/ext`).then(setExts).catch(() => {}), [id])
-  useEffect(() => {
-    if (!on) return
-    loadTpls(); loadExts()
-  }, [on, loadTpls, loadExts])
+  useEffect(() => { loadExts() }, [loadExts]) // 요약 화면 아래 「💡 확장」 추천도 만든 것을 거르려면 필요
+  useEffect(() => { if (on) loadTpls() }, [on, loadTpls])
   // 카툰: 서버가 백그라운드로 만들고(POST), 진행·부분 결과를 2초마다 받아온다(GET)
   const [prog, setProg] = useState(''), [redo, setRedo] = useState<number | null>(null)
   const timer = useRef(0)
@@ -181,8 +179,8 @@ export function ExpandBody({ ex, note, seek, hasMindmap, children }: { ex: Ex; n
   const seen = new Set<string>()
   const made = new Set([...Object.keys(ex.exts), ...(hasMindmap ? ['mindmap'] : [])])
   const sugg = SUGG.filter(([k]) => !made.has(k) && !ex.busy.includes(k)).slice(0, 3).map(([key, label]) => ({ key, label }))
-  const style = (x as { style?: string } | undefined)?.style
-  const foot = x && <ReportFoot id={note.id} fkey={ex.cur} fb={ex.fb.fb} onFb={ex.fb.set} busy={ex.busy.includes(ex.cur)} onRedo={() => ex.make(ex.cur, x.kind === 'ppt' ? { style, count: (x as unknown as Deck).slides.length } : style ? { style } : undefined)}
+  const style = (x as { style?: string } | undefined)?.style, extra = (x as { extra?: string } | undefined)?.extra
+  const foot = x && <ReportFoot id={note.id} fkey={ex.cur} fb={ex.fb.fb} onFb={ex.fb.set} busy={ex.busy.includes(ex.cur)} onRedo={() => ex.make(ex.cur, x.kind === 'ppt' ? { style, count: (x as unknown as Deck).slides.length } : style ? { style, extra } : undefined)}
     text={() => toMd(x)} file={`${note.title}-${ex.nameOf(ex.cur)}.md`} sugg={sugg} onSugg={(k) => ex.add([k])} collectionId={note.collection_id} />
   const pk = ex.pick[0]
   const dark = document.documentElement.classList.contains('dark')
@@ -198,8 +196,8 @@ export function ExpandBody({ ex, note, seek, hasMindmap, children }: { ex: Ex; n
       {pk === 'ppt' && <PptPicker key={pk} id={note.id} onClose={() => ex.picked(pk, null)} onMake={(o) => ex.picked(pk, o)} />}
       {ex.err && <p className="mt-4 text-[14px] text-muted">{ex.err}</p>}
       {ex.cur === 'mindmap' ? children : !x ? (
-        <div className="pt-24 flex items-center gap-3 text-[16px]">
-          {ex.busy.includes(ex.cur) ? <><Loader2 size={18} className="animate-spin" />{ex.nameOf(ex.cur)}을(를) 만드는 중이에요 ({ex.cur === 'cartoon' ? ex.prog || '준비 중' : WEB.includes(ex.cur) ? '웹 조사 포함 1~3분' : '30~60초'})</>
+        <div className="relative mt-24 flex items-center gap-3 text-[16px]">
+          {ex.busy.includes(ex.cur) ? <><span data-progress="" className="absolute left-0 right-0 -bottom-4 h-1.5 rounded-full bg-subtle overflow-hidden"><span className="block h-full w-1/3 rounded-full bg-accent animate-[vnbar_1.4s_ease-in-out_infinite]" /></span><Loader2 size={18} className="animate-spin" />{ex.nameOf(ex.cur)}을(를) 만드는 중이에요 ({ex.cur === 'cartoon' ? ex.prog || '준비 중' : WEB.includes(ex.cur) ? '웹 조사 포함 1~3분' : '30~60초'})</>
             : ex.pick.includes(ex.cur) ? <>스타일을 고르면 만들어요</>
             : <>아직 만들지 않았어요 <button onClick={() => ex.add([ex.cur])} className="underline">만들기</button></>}
         </div>
