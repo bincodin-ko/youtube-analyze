@@ -418,6 +418,50 @@ def sc_ppt(pg, ex):  # J: 만들기 창(9종·2~30장·지시) → 요청 → �
     ex(pg.get_by_role("link", name="PPTX 다운로드")).to_have_attribute("href", re.compile(r"/ppt\.pptx$"))
 
 
+# ---- 3묶음 (spec K·L·M): 팟캐스트·애니메이션·요약 화면(도식·미니 목차·요점 접기·용어 질문하기) ----
+SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 450"><rect width="600" height="450" fill="#f7f7f5"/><text x="300" y="50" text-anchor="middle" font-size="28">흐름</text><circle cx="100" cy="200" r="10" fill="#6663fd"><animate attributeName="cx" values="100;500;100" dur="2s" repeatCount="indefinite"/></circle></svg>'
+POD = {"kind": "podcast", "title": "시험 에피소드", "host": {"name": "김민준", "role": "AI 기술 해설가"},
+       "paras": [{"text": f"문단 {i} **핵심**", "list": ["주제: 설명"] if i == 1 else [], "refs": [0]} for i in range(5)]}
+def _inject(pg, extra):
+    def h(r):
+        resp = r.fetch(); d = resp.json(); d.update(extra); r.fulfill(response=resp, json=d)
+    pg.route("**/api/notes/*/ext", h)
+def sc_podcast(pg, ex):  # K: 해설자 말풍선 문단 + 음성 만들기 → 듣기 → 읽는 문단 강조
+    _inject(pg, {"podcast": POD})
+    st = {"ready": []}
+    pg.route("**/api/notes/*/podcast/audio", lambda r: (st.update(ready=[[i, f"p_{i}.mp3"] for i in range(5)]), r.fulfill(json={"done": 5, "total": 5, "busy": False, "err": None})) if r.request.method == "POST" else r.fulfill(json={"job": None, "ready": st["ready"]}))
+    pg.route("**/media/*/podcast/*.mp3", lambda r: r.fulfill(status=200, content_type="audio/mpeg", body=b""))
+    pg.goto(pg.url.split("?")[0] + "?ext=podcast")
+    ex(pg.locator("[data-podcast] [data-para]")).to_have_count(5)
+    ex(pg.locator("[data-podcast]").get_by_text("김민준").first).to_be_visible(); ex(pg.locator("[data-podcast]").get_by_text("AI 기술 해설가").first).to_be_visible()
+    pg.get_by_role("button", name="음성으로 듣기").click()
+    pg.get_by_role("button", name="듣기", exact=True).click()
+    ex(pg.locator("[data-para='0']")).to_have_class(re.compile("bg-hl"))
+    pg.screenshot(path=str(SHOTS / "podcast.png"))
+def sc_animation(pg, ex):  # L: 쉬운 말 리포트 + 소제목마다 움직이는 SVG(<img>로)
+    _inject(pg, {"animation": {"kind": "anim", "title": "애니메이션 시험", "intro": "도입 문장", "blocks": [{"heading": f"{i}. 소제목", "bullets": [{"text": "쉬운 설명", "refs": [0]}], "svg": SVG} for i in (1, 2, 3)]}})
+    pg.goto(pg.url.split("?")[0] + "?ext=animation")
+    ex(pg.locator("img[data-anim-svg]")).to_have_count(3)
+    pg.wait_for_function("() => [...document.querySelectorAll('img[data-anim-svg]')].every(i => i.complete && i.naturalWidth > 0)")
+    pg.screenshot(path=str(SHOTS / "animation.png"))
+def sc_summary_bits(pg, ex):  # M
+    pg.route("**/api/notes/*/diagram", lambda r: r.fulfill(json={"svg": SVG}) if r.request.method == "GET" else r.abort())
+    pg.reload()
+    ex(pg.locator("img[data-diagram]")).to_be_visible()
+    rail = pg.locator("[data-rail]"); ex(rail).to_be_visible(); rail.hover(); ex(pg.locator("[data-rail-pop]")).to_be_visible()
+    pg.screenshot(path=str(SHOTS / "summary_rail.png"))
+    pg.mouse.move(700, 600)
+    kp = pg.locator("[data-report] ul").first; n0 = pg.locator("[data-report] ul").count()
+    pg.get_by_role("button", name="핵심 요점 접기").click(); ex(pg.get_by_role("button", name="핵심 요점 펼치기")).to_be_visible()
+    assert pg.locator("[data-report] ul").count() == n0 - 1, "요점 목록이 안 접힘"
+    pg.get_by_role("button", name="핵심 요점 펼치기").click()
+    t = pg.locator("[data-term]").first
+    if t.count():
+        name = t.inner_text(); t.hover()
+        pg.get_by_label(f"{name} 질문하기").fill("예를 들어줘"); pg.keyboard.press("Enter")
+        ex(pg.get_by_placeholder("무엇이든 물어보세요")).to_have_value(re.compile(re.escape(name)))
+
+
 ONLINE = "--online" in sys.argv  # 실제 유튜브 접속이 필요한 시험(인터넷 상태에 따라 실패할 수 있어 기본에서 뺌)
 
 SCENARIOS = [
@@ -447,6 +491,9 @@ SCENARIOS = [
     ("ext_article_tpls", f"/note/{ARTICLE}", 1440, False, sc_article_tpls),
     ("ext_script_table", f"/note/{VIDEO}", 1440, False, sc_script_table),
     ("ext_ppt", f"/note/{VIDEO}", 1440, False, sc_ppt),
+    ("ext_podcast", f"/note/{VIDEO}", 1440, False, sc_podcast),
+    ("ext_animation", f"/note/{VIDEO}", 1440, False, sc_animation),
+    ("summary_bits", f"/note/{VIDEO}", 1440, False, sc_summary_bits),
 ] + ([("player_real_2x", f"/note/{VIDEO}", 1440, False, sc_real2x), ("player_real_big", f"/note/{VIDEO}", 1440, False, sc_real_big)] if ONLINE else [])
 
 
@@ -508,7 +555,7 @@ def main():
     step("web:build", lambda: sh(["npm", "run", "build"], ROOT / "web"))
     step("web:lint", lambda: sh(["npm", "run", "lint"], ROOT / "web"))
     step("seed", seed)
-    for m in ("files", "scenes", "transcript", "ppt"):
+    for m in ("files", "scenes", "transcript", "ppt", "podcast"):
         step(f"backend:{m}", self_check(m))
     step("backend:import", lambda: sh([sys.executable, "-c", "import app.main"], ROOT / "backend", env_data()))
     srv = None

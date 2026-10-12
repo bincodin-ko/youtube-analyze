@@ -10,12 +10,13 @@ import StylePicker from './StylePicker'
 import ReportFoot, { useFeedback } from './ReportFoot'
 import Cartoon, { type Toon } from './Cartoon'
 import { PptDeck, PptPicker, type Deck } from './Ppt'
+import { Animation, Podcast, type Anim, type Pod } from './Listen'
 import Backdrop from './Backdrop'
 
 export type Tpls = { builtin: { key: string; name: string; cat: string; desc: string; kind: string }[]; custom: { key: string; name: string; prompt: string }[] }
 type Src = { url: string; title: string }
 type Blk = { heading: string; img?: string; illust?: string; table?: { cols: string[]; rows: string[][] }; bullets: { text: string; refs: number[]; src?: Src[] }[] }
-type Ext = Partial<Omit<Info, 'blocks'>> & { kind: 'md' | 'flash' | 'quiz' | 'infographic' | 'cartoon' | 'ppt'; title: string; blocks?: any[]; cards?: Card[]; questions?: Quiz[]; noweb?: boolean }
+type Ext = Partial<Omit<Info, 'blocks'>> & { kind: 'md' | 'flash' | 'quiz' | 'infographic' | 'cartoon' | 'ppt' | 'podcast' | 'anim'; title: string; blocks?: any[]; cards?: Card[]; questions?: Quiz[]; noweb?: boolean }
 type Opts = { style?: string; extra?: string; count?: number }
 
 // 만들기 전에 스타일을 고르는 템플릿(릴리스: 인포그래픽·카툰)
@@ -155,6 +156,8 @@ const toMd = (x: Ext) => {
   else if (x.kind === 'flash') x.cards!.forEach((c, i) => out.push('', `${i + 1}. ${c.q}`, `   - ${c.a}`))
   else if (x.kind === 'quiz') x.questions!.forEach((q, i) => out.push('', `${i + 1}. ${q.q}`, ...q.choices.map((c, j) => `   ${j === q.answer ? '✔' : '-'} ${c}`)))
   else if (x.kind === 'infographic') { out.push('', x.subtitle ?? ''); for (const b of (x.blocks ?? []) as { heading: string; text: string }[]) out.push(`- **${b.heading}** ${b.text}`); if (x.takeaway) out.push('', `> ${x.takeaway}`) }
+  else if (x.kind === 'podcast') for (const p of (x as unknown as Pod).paras) out.push('', p.text, ...p.list.map((l) => `- ${l}`))
+  else if (x.kind === 'anim') { const a = x as unknown as Anim; out.push('', a.intro); for (const b of a.blocks) out.push('', `## ${b.heading}`, ...b.bullets.map((t) => `- ${t.text}`)) }
   else if (x.kind === 'cartoon') for (const p of ((x as unknown as Toon).panels ?? [])) out.push(`- ${p.bubble} — ${p.caption}`)
   return out.join('\n')
 }
@@ -204,6 +207,8 @@ export function ExpandBody({ ex, note, seek, hasMindmap, children }: { ex: Ex; n
           {x.noweb && <p data-noweb="" className="-mt-4 mb-8 text-[13px] text-muted">웹 검색 없이 만들었어요 (인터넷 연결이나 검색 한도를 확인해 주세요)</p>}
           {x.kind === 'flash' && <Flashcards key={ex.cur} cards={x.cards!} refs={refs} />}
           {x.kind === 'quiz' && <QuizView key={ex.cur} qs={x.questions!} refs={refs} />}
+          {x.kind === 'podcast' && <Podcast key={ex.cur} id={note.id} data={x as unknown as Pod} refs={refs} />}
+          {x.kind === 'anim' && <Animation data={x as unknown as Anim} refs={refs} />}
           {x.kind === 'md' && (x.blocks as Blk[]).map((b, i) => (
             <div key={i} className="mb-10">
               <h2 className="text-[20px] font-bold mb-4">{b.heading}</h2>

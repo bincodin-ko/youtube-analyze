@@ -15,6 +15,7 @@ import Clips from '../components/Clips'
 import Mindmap, { getMindmap, makeMindmap, type Level } from '../components/Mindmap'
 import { ExpandBody, ExpandMenu, useExpand } from '../components/Expand'
 import ReportFoot from '../components/ReportFoot'
+import { FoldLine, SummaryDiagram, TocRail } from '../components/SummaryBits'
 import Stage, { type Ctl } from '../components/Stage'
 
 // ---- YouTube IFrame 플레이어 ----
@@ -227,6 +228,7 @@ export default function NotePage() {
   const [right, setRight] = useState(true)
   const [tab, setTab] = useState<'video' | 'report' | 'chat'>('report')
   const [time, setTime] = useState(0)
+  const [kpOpen, setKpOpen] = useState(true) // 도입 핵심 요점 접기
   const [mode, setMode] = useState<'summary' | 'expand'>(() => new URLSearchParams(location.search).get('ext') ? 'expand' : 'summary') // ?ext=키면 그 확장 리포트로
   // 길이·난이도 리포트(짧게·길게·쉽게): 한 번 받은 건 alts에 두고 바로 표시
   const [style, setStyle] = useState<Style>('default')
@@ -255,6 +257,11 @@ export default function NotePage() {
   const wide = mode === 'expand' && ex.cur === 'mindmap'
   useEffect(() => { if (!wide) return; const p = [left, right]; setLeft(false); setRight(false); return () => { setLeft(p[0]); setRight(p[1]) } }, [wide]) // eslint-disable-line react-hooks/exhaustive-deps
   const rn = useReportNotes(id, () => { setRight(true); if (matchMedia('(max-width:1099px)').matches) setTab('chat') }) // 하이라이트·메모·채팅 인용
+  const pickRef = useRef(rn.pick); pickRef.current = rn.pick
+  useEffect(() => { // 용어 말풍선 「질문하기」 → 채팅 입력창
+    const f = (e: Event) => pickRef.current('ask', (e as CustomEvent<string>).detail, '')
+    addEventListener('vn-ask', f); return () => removeEventListener('vn-ask', f)
+  }, [])
   const reload = useCallback(() => { getNote(id).then(setNote).catch((e) => setErr(e.message)) }, [id])
   useEffect(reload, [reload])
   const art = note?.kind === 'article' || note?.kind === 'pdf'  // 영상 없이 원문 문단으로 이동하는 종류
@@ -372,10 +379,11 @@ export default function NotePage() {
               </>
             ) : (
               <>
+                <TocRail items={r.sections.flatMap((s) => [{ id: s.id, title: s.title, start: s.start }, ...s.children.map((c) => ({ id: c.id, title: c.title, start: c.start, sub: true }))])} onGo={goto} />
                 <h1 className="text-[32px] font-bold leading-[1.35] mt-[88px] mb-10 break-keep">{r.title}</h1>
                 <p className="text-[16px] leading-[1.85]"><RichT text={r.overview} terms={terms} seen={seen} /></p>
-                <ul className="mt-5 space-y-1.5 text-[15px] list-disc pl-5 marker:text-muted">{r.key_points.map((k, i) => <li key={i}><RichT text={k} terms={terms} seen={seen} /></li>)}</ul>
-                <hr className="border-line mt-8" />
+                {kpOpen && <ul className="mt-5 space-y-1.5 text-[15px] list-disc pl-5 marker:text-muted">{r.key_points.map((k, i) => <li key={i}><RichT text={k} terms={terms} seen={seen} /></li>)}</ul>}
+                <FoldLine open={kpOpen} onToggle={() => setKpOpen(!kpOpen)} />
                 <h3 className="text-[14px] font-bold mt-14 mb-5">목차</h3>
                 <nav className="border-l border-line pl-6 text-[14px] text-muted space-y-2">
                   {r.sections.map((s) => (
@@ -385,9 +393,10 @@ export default function NotePage() {
                     </div>
                   ))}
                 </nav>
-                {r.sections.map((s) => (
+                {r.sections.map((s, si0) => (
                   <div key={s.id} className="mt-16">
                     <h2 id={`sec-${s.id}`} className="text-[20px] font-bold scroll-mt-16 mb-6">{s.id}. {s.title}</h2>
+                    {si0 === 0 && <SummaryDiagram id={note.id} />}
                     {s.children.map((c) => {
                       const si = scenes.findIndex((x) => x.title.startsWith(c.id + '.'))
                       return (

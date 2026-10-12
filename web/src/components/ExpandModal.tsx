@@ -12,8 +12,8 @@ const REC_ARTICLE = ['background', 'deep', 'counter', 'infographic']
 const REST = ['script', 'timestamp', 'textbook', 'report', 'minutes', 'interview', 'litreview', 'stock', 'investmethod', 'paperreview', 'quote', 'blog', 'sermon', 'lecture', 'recipe', 'study']
 const SECTIONS: [string, string[]][] = [
   ['더 깊이 이해하기', ['background', 'counter', 'action', 'deep', 'comments']],
-  ['시각자료', ['ppt', 'mindmap', 'infographic', 'cartoon']],
-  ['이해 점검하기', ['flash', 'quiz']],
+  ['시각자료', ['ppt', 'mindmap', 'infographic', 'cartoon', 'animation']],
+  ['이해 점검하기', ['flash', 'quiz', 'podcast']],
 ]
 
 export default function ExpandModal({ tpls, made, youtube, article, onClose, onAdd, onChanged }: {

@@ -15,6 +15,8 @@
 
 ## A. 나중에 고칠 것
 
+- [2026-10-13] 팟캐스트 Edge 온라인 음성(edge-tts 7.2.8 최신)이 MS 서버에서 403 거절(2회) · 지금: 윈도우 내장 한국어 음성(Heami)으로 자동 전환해 동작 · 다음: edge-tts 새 버전이 나오면 업데이트 후 재시도(`uv add edge-tts@latest`)
+
 - [2026-10-12] 앱 재시작 후 ☆·크게 보기 유지(app.pyw private_mode=False)를 숨긴 pywebview 창 2번으로 실제 확인하는 verify 단계 · 보류: 이 환경에서 WebView2 숨긴 창이 "Main window failed to start"로 들쭉날쭉(3회 시도) → verify는 app.pyw 옵션 정적 검사만 · 다음: 마지막 e2e 단계에서 실제 앱 창으로 재확인(verify/webview_storage.py)
 - [2026-10-12] 시험 중 상대 경로를 줘서 프로젝트 밖 `C:\Users\gusql\AppData\Local\Programs\Python\Python312\wv3` 폴더(WebView2 시험 저장소)가 생김 · 보류: 프로젝트 밖 삭제는 사용자 허락 필요 · 다음: 허락받고 삭제
 

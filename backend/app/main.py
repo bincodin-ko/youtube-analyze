@@ -549,6 +549,7 @@ def make_ext(nid: str, key: str, body: ExtOpts | None = None):
     except Exception as e:
         raise HTTPException(502, f"확장 리포트 생성 실패: {e}")
     templates.path(MEDIA, nid, key).write_text(json.dumps(res, ensure_ascii=False), encoding="utf-8")
+    if key == "podcast": shutil.rmtree(MEDIA / nid / "podcast", ignore_errors=True)  # 문단이 바뀌었으니 예전 음성은 버림
     if any(b.get("illust") for b in res.get("blocks") or []):
         cartoon.illustrate(MEDIA, nid, key)  # 소제목 삽화는 뒤에서 한 장씩(그림 모델 없으면 건너뜀)
     return res
@@ -586,7 +587,50 @@ def del_ext(nid: str, key: str):
     db.get(nid) or _404()
     templates.path(MEDIA, nid, key).unlink(missing_ok=True)
     shutil.rmtree(MEDIA / nid / f"ext_{key}", ignore_errors=True)  # 소제목 삽화
+    if key == "podcast": shutil.rmtree(MEDIA / nid / "podcast", ignore_errors=True)
     return {"ok": True}
+
+
+# ---- 팟캐스트 음성 (podcast.py, Edge 온라인 음성): 시작 POST, 진행·준비된 문단 GET ----
+@app.post("/api/notes/{nid}/podcast/audio")
+def podcast_audio(nid: str):
+    from app import podcast
+    db.get(nid) or _404()
+    if not (MEDIA / nid / "ext_podcast.json").exists(): raise HTTPException(404, "팟캐스트를 먼저 만들어 주세요")
+    return podcast.start(MEDIA, nid)
+
+
+@app.get("/api/notes/{nid}/podcast/audio")
+def podcast_state(nid: str):
+    from app import podcast
+    db.get(nid) or _404()
+    return podcast.state(MEDIA, nid)
+
+
+# ---- 요약 화면 첫 소제목 도식(릴리스 요약의 그림 한 장): data/media/<id>/diagram.svg, 처음 볼 때 한 번 만듦 ----
+@app.get("/api/notes/{nid}/diagram")
+def get_diagram(nid: str):
+    db.get(nid) or _404()
+    f = MEDIA / nid / "diagram.svg"
+    return {"svg": f.read_text(encoding="utf-8") if f.exists() else None}
+
+
+@app.post("/api/notes/{nid}/diagram")
+def make_diagram(nid: str):
+    from app import templates
+    n = db.get(nid) or _404()
+    rep = n.get("report") or {}
+    if not rep.get("sections") or not ai: raise HTTPException(400, "리포트가 아직 없어요")
+    s = rep["sections"][0]
+    body = f"주제: {rep.get('title')}\n소제목: {s['title']}\n" + "\n".join(f"- {c['title']}: " + " / ".join(b["text"] for b in c["bullets"]) for c in s["children"])
+    prompt = ("아래 내용을 한눈에 보여 주는 도식(인포그래픽) SVG 하나를 그려라. <svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 960 540\">, 흰 배경, "
+              "맨 위 굵은 한국어 제목과 회색 부제, 단계·관계를 상자(rect rx)·아이콘 같은 단순 도형·화살표로 배치, 상자 안 글자는 한 줄 14자 이내 2줄까지, 색은 #6663fd·#dfff32·#222·#888 위주, 글꼴 sans-serif. "
+              "<script>·이벤트 속성·외부 링크·이미지·foreignObject 금지. SVG만 출력(설명·코드펜스 금지).\n\n" + body)
+    try: svg = templates.clean_svg(ai._claude(prompt, 180))
+    except Exception as e: raise HTTPException(502, f"도식 생성 실패: {e}")
+    if not svg: raise HTTPException(502, "도식 생성 실패: SVG가 없어요")
+    (MEDIA / nid / "diagram.svg").write_text(svg, encoding="utf-8")
+    return {"svg": svg}
 
 
 # ---- PPT (ppt.py): 만들기·장별 수정본·PPTX 다운로드·레퍼런스 이미지(최대 4장) ----

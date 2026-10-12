@@ -59,6 +59,14 @@ function TermSpan({ t }: { t: Term }) {
       {open && (
         <span role="tooltip" data-term-pop className="absolute z-30 left-0 top-full mt-1.5 w-[260px] max-w-[70vw] rounded-xl border border-line bg-bg p-3 text-[14px] leading-[1.6] font-normal text-fg shadow-[0_4px_16px_rgba(0,0,0,.08)]">
           <b className="block text-[13px] mb-1">{t.term}</b>{t.easy}
+          {/* 릴리스처럼 말풍선 안에서 바로 질문 → 오른쪽 채팅 입력창으로(Note가 vn-ask를 받음) */}
+          <form className="mt-2.5 flex items-center gap-1.5 rounded-full border border-line pl-3 pr-1 h-8" onSubmit={(e) => {
+            e.preventDefault(); const q = new FormData(e.currentTarget).get('q')?.toString().trim()
+            dispatchEvent(new CustomEvent('vn-ask', { detail: `「${t.term}」 ${q || '더 자세히 알려줘'}` })); setOpen(false)
+          }}>
+            <input name="q" aria-label={`${t.term} 질문하기`} placeholder="질문하기" className="flex-1 min-w-0 bg-transparent text-[13px] outline-none" />
+            <button aria-label="채팅으로 묻기" className="size-6 grid place-items-center rounded-full bg-fg text-bg text-[12px]">↑</button>
+          </form>
         </span>
       )}
     </span>

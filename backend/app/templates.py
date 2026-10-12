@@ -69,6 +69,18 @@ BUILTIN = {
                    prompt="이 내용을 설교(말씀) 노트로 정리하라. blocks는 '본문·주제', '핵심 메시지', 대지(요점) 2~4개, '삶에 적용하기', '기도·묵상 포인트' 순서. 인용된 구절은 그대로 살린다."),
     "comments": dict(name="댓글분석", cat="더 깊이 이해하기", desc="시청자 반응과 여론", kind="md", prompt=""),  # 유튜브 댓글을 읽어 분석(comments.py)
     "ppt": dict(name="PPT", cat="시각자료", desc="발표용 슬라이드 덱", kind="ppt", prompt=""),  # 생성은 ppt.py
+    # 릴리스 「애니메이션」(크레딧으로 확인 2026-10-12): 쉬운 말 리포트 + 소제목마다 움직이는 SVG 도식
+    "animation": dict(name="애니메이션", cat="시각자료", desc="움직이는 도식으로 쉽게", kind="anim",
+                      prompt="""이 내용을 중학생도 이해할 쉬운 말과 비유로 설명하는 리포트를 만들어라. 소제목은 정확히 3개('1. ...', '2. ...', '3. ...' 번호 포함, 흥미를 끄는 문장형).
+소제목마다 그 개념을 보여 주는 움직이는 SVG 도식 1개를 직접 그린다: <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 450">, 배경 #f7f7f5, 위쪽에 굵은 한국어 제목 text, 상자(rect rx)·원·화살표(line/path)로 관계를 그리고 <animate>/<animateMotion>/<animateTransform>(repeatCount="indefinite")으로 흐름을 따라 점이 움직이거나 강조가 깜박이게 한다. 글자는 짧게(한 줄 12자 이내), 색은 #6663fd·#222·#999 위주. <script>·이벤트 속성·외부 링크·이미지·foreignObject 금지.
+JSON 객체 하나만 출력(설명·코드펜스 금지): {"title":"제목","intro":"도입 2~3문장","blocks":[{"heading":"1. 소제목","bullets":[{"text":"쉬운 설명 문장(**핵심어** 굵게)","refs":[대본 줄 인덱스]}],"svg":"<svg ...>...</svg>"}]}
+한국어. refs는 실제 존재하는 대본 줄 인덱스 1~2개."""),
+    # 릴리스 「팟캐스트」(크레딧으로 확인): 음성 없이 해설자 1명이 말하는 문단들. 음성은 우리가 Edge로 추가(podcast.py)
+    "podcast": dict(name="팟캐스트", cat="이해 점검하기", desc="해설자가 들려주는 대화형 정리", kind="podcast",
+                    prompt="""이 내용을 팟캐스트 해설로 다시 써라. 해설자는 한 명(한국 이름과 역할, 예: 김민준 · AI 기술 해설가). 듣는 사람에게 말하듯 존댓말 구어체.
+구성: 인사와 오늘의 주제 → 오늘 다룰 내용 목록(list, 3~5개, '주제: 한 줄 설명') → 본문 문단 8~12개(예시·비유 포함) → 요약과 마무리 인사.
+JSON 객체 하나만 출력(설명·코드펜스 금지): {"title":"에피소드 제목","host":{"name":"이름","role":"역할"},"paras":[{"text":"문단(**핵심어** 굵게)","list":["목록이 필요할 때만"],"refs":[대본 줄 인덱스]}]}
+한국어. 대본에 없는 사실을 지어내지 않는다."""),
     "mindmap": dict(name="마인드맵", cat="시각자료", desc="핵심 구조를 한눈에 가지로", kind="mindmap", prompt=""),
     "infographic": dict(name="인포그래픽", cat="시각자료", desc="핵심을 한 장의 도식 포스터로", kind="infographic",
                         prompt="""이 내용을 한 장짜리 인포그래픽(세로 포스터)용 데이터로 만들어라. 그림이 아니라 JSON만 만든다.
@@ -168,6 +180,19 @@ def _comments(note: dict) -> dict:
     return ai._ask(prompt, 180, parse)
 
 
+def clean_svg(s: str) -> str:
+    """AI가 그린 SVG에서 실행·외부 요소를 뺀다(화면에서는 <img>로만 그려 스크립트가 원래 돌지 않지만 이중 안전)."""
+    s = str(s).strip()
+    m = re.search(r"<svg\b.*?</svg>", s, re.S | re.I)
+    if not m: return ""
+    s = m.group(0)
+    s = re.sub(r"<(script|foreignObject|iframe|image|use)\b.*?(</\1>|/>)", "", s, flags=re.S | re.I)
+    s = re.sub(r"\son\w+\s*=\s*(\"[^\"]*\"|'[^']*')", "", s, flags=re.I)
+    s = re.sub(r"\s(xlink:)?href\s*=\s*(\"(?!#)[^\"]*\"|'(?!#)[^']*')", "", s, flags=re.I)
+    if "xmlns=" not in s[:200]: s = s.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"', 1)
+    return s[:60000]
+
+
 def _src(x) -> list:
     """웹 출처: http(s) URL만, 최대 3개."""
     out = []
@@ -212,6 +237,15 @@ def generate(note: dict, key: str, opts: dict | None = None) -> dict:
                    "ref": b["ref"] if isinstance(b.get("ref"), int) and 0 <= b["ref"] < n else None} for b in r["blocks"] if b.get("heading") and b.get("text")]
             if len(bl) < 2: raise ValueError("블록 부족")
             out.update(subtitle=str(r.get("subtitle") or ""), layout=r["layout"] if r.get("layout") in LAYOUTS else "steps", blocks=bl[:6], takeaway=str(r.get("takeaway") or ""), style=style)
+        elif t["kind"] == "podcast":
+            h = r.get("host") or {}
+            ps = [{"text": str(p["text"]), "list": [str(x) for x in p.get("list") or []][:6], "refs": refs(p)} for p in r["paras"] if p.get("text")]
+            if len(ps) < 4: raise ValueError("문단 부족")
+            out.update(host={"name": str(h.get("name") or "진행자")[:10], "role": str(h.get("role") or "해설가")[:20]}, paras=ps[:20])
+        elif t["kind"] == "anim":
+            bl = [{"heading": str(b["heading"]), "bullets": [{"text": x["text"], "refs": refs(x)} for x in b.get("bullets") or [] if x.get("text")], "svg": clean_svg(b.get("svg") or "")} for b in r["blocks"] if b.get("heading")]
+            if len(bl) < 2 or not any(b["svg"] for b in bl): raise ValueError("도식 부족")
+            out.update(intro=str(r.get("intro") or ""), blocks=bl[:4])
         elif t["kind"] == "quiz":
             qs = [{"q": c["q"], "choices": c["choices"][:4], "answer": c["answer"], "explain": c.get("explain", ""), "refs": refs(c)}
                   for c in r["questions"] if c.get("q") and isinstance(c.get("choices"), list) and len(c["choices"]) >= 4 and c.get("answer") in (0, 1, 2, 3)]
