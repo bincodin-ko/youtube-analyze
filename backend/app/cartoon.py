@@ -11,6 +11,17 @@ URL = f"http://127.0.0.1:{PORT}"
 MODELS = {"unet": "flux-2-klein-4b-fp8.safetensors", "clip": "qwen_3_4b_fp4_flux2.safetensors", "vae": "flux2-vae.safetensors"}
 SIZE = 768
 STYLE = "flat color webtoon comic panel illustration, thick clean black outlines, simple soft background, expressive friendly characters, no text, no letters, no speech bubbles, full-bleed artwork without frame or border"
+# 릴리스 「만화 스타일 선택」 6종 → 그림 지시문. 공통 꼬리(글자·말풍선·테두리 없음)는 NOTEXT
+NOTEXT = "no text, no letters, no speech bubbles, full-bleed artwork without frame or border"
+STYLES = {
+    "webtoon": STYLE,
+    "realistic": "realistic graphic novel comic panel, detailed semi-realistic people, cinematic lighting, ink and color, " + NOTEXT,
+    "anime": "Japanese anime style illustration, cel shading, big expressive eyes, vibrant clean colors, " + NOTEXT,
+    "chibi": "cute chibi super-deformed characters with big heads and tiny bodies, pastel colors, kawaii style, " + NOTEXT,
+    "disney": "3D animated feature film style like a family animation movie, soft rounded characters, warm lighting, " + NOTEXT,
+    "comicbook": "American comic book style, bold black ink lines, halftone dots, strong saturated colors, dynamic poses, " + NOTEXT,
+}
+ILLUST = "clean editorial flat illustration, soft muted colors, simple shapes, white background, no text, no letters, no logos"
 JOBS: dict = {}  # nid → {"done","total","busy","err","mode","msg"}
 _proc = None  # 우리가 띄운 ComfyUI (이미 떠 있으면 None)
 
@@ -99,11 +110,12 @@ def draw(prompt: str, seed: int, out: Path, ref: Path | None = None) -> None:
     raise RuntimeError("그림 생성 시간 초과")
 
 
-def storyboard(note: dict) -> dict:
-    """claude -p 로 콘티 JSON. ref는 대본 범위 안 정수만 남긴다."""
+def storyboard(note: dict, extra: str | None = None) -> dict:
+    """claude -p 로 콘티 JSON. ref는 대본 범위 안 정수만 남긴다. extra=「고급 설정 > 추가 프롬프트」."""
     tr = note["transcript"]; n = len(tr)
     rep = note["report"]
     body = f"리포트 제목: {rep.get('title')}\n핵심: " + " / ".join(rep.get("key_points", [])) + "\n\n"
+    if (extra or "").strip(): body = "사용자 추가 요청(위 형식 규칙 안에서 반영): " + extra.strip()[:500] + "\n\n" + body
     head = ai._kind(note, "너는 영상 대본을 바탕으로 카툰을 구성하는 콘티 작가다. 대본은 한 줄이 `[인덱스 mm:ss] 텍스트` 형식이다(해외 영상이면 번역해서 쓴다).\n" + PROMPT)
     prompt = head + body + "\n".join(f"[{i} {ai._mmss(s['start'])}] {s['text']}" for i, s in enumerate(tr))
 
@@ -116,15 +128,15 @@ def storyboard(note: dict) -> dict:
 
 
 def _prompt(sb: dict, i: int) -> str:
-    return f"{STYLE}. Main character (always identical): {sb['character']}. Scene: {sb['panels'][i]['scene']}"
+    return f"{STYLES.get(sb.get('style'), STYLE)}. Main character (always identical): {sb['character']}. Scene: {sb['panels'][i]['scene']}"
 
 
 def _save(media: Path, nid: str, sb: dict) -> None:
     templates.path(media, nid, "cartoon").write_text(json.dumps(sb, ensure_ascii=False), encoding="utf-8")
 
 
-def start(media: Path, note: dict, only: int | None = None) -> dict:
-    """백그라운드 생성 시작. only=칸 번호면 그 칸만 다시 그린다. 이미 돌고 있으면 그대로."""
+def start(media: Path, note: dict, only: int | None = None, style: str | None = None, extra: str | None = None) -> dict:
+    """백그라운드 생성 시작. only=칸 번호면 그 칸만 다시 그린다(저장된 스타일 그대로). 이미 돌고 있으면 그대로."""
     nid = note["id"]
     j = JOBS.get(nid)
     if j and j["busy"]: return j
@@ -138,7 +150,7 @@ def start(media: Path, note: dict, only: int | None = None) -> dict:
                 sb = json.loads(f.read_text(encoding="utf-8")); idx = [only]
                 if sb["mode"] != "ai": return
             else:
-                sb = {"kind": "cartoon", **storyboard(note)}; idx = list(range(len(sb["panels"])))
+                sb = {"kind": "cartoon", **storyboard(note, extra), "style": style if style in STYLES else "webtoon"}; idx = list(range(len(sb["panels"])))
                 shutil.rmtree(d, ignore_errors=True)
                 sb["mode"] = "ai" if installed() else "simple"
                 _save(media, nid, sb)
@@ -166,3 +178,33 @@ def start(media: Path, note: dict, only: int | None = None) -> dict:
             j["busy"] = False
     threading.Thread(target=run, daemon=True).start()
     return j
+
+
+def illustrate(media: Path, nid: str, key: str) -> None:
+    """웹 조사형 리포트(배경지식 등)의 소제목마다 삽화 1장(릴리스처럼). 글은 먼저 보이고 그림은 한 장씩 채워진다.
+    그림 모델이 없거나 실패하면 그림 없이 끝(글만)."""
+    jid = f"{nid}:{key}"
+    if not installed() or (JOBS.get(jid) or {}).get("busy"): return
+    f = templates.path(media, nid, key)
+    j = JOBS[jid] = {"done": 0, "total": 0, "busy": True, "err": None}
+
+    def run():
+        try:
+            r = json.loads(f.read_text(encoding="utf-8"))
+            idx = [i for i, b in enumerate(r["blocks"]) if b.get("illust") and not b.get("img")]
+            j["total"] = len(idx)
+            if not idx: return
+            ensure_server()
+            d = media / nid / f"ext_{key}"; d.mkdir(parents=True, exist_ok=True)
+            for i in idx:
+                draw(f"{ILLUST}. {r['blocks'][i]['illust']}", random.randrange(2**31), d / f"b_{i}.png")
+                cur = json.loads(f.read_text(encoding="utf-8"))  # 그리는 동안 다시 만들었으면 그만
+                if cur["blocks"][i].get("illust") != r["blocks"][i]["illust"]: return
+                cur["blocks"][i]["img"] = f"ext_{key}/b_{i}.png?v={int(time.time())}"
+                f.write_text(json.dumps(cur, ensure_ascii=False), encoding="utf-8")
+                j["done"] += 1
+        except Exception as e:
+            print(f"[illust] {jid} 실패: {e}"); j["err"] = str(e)[:200]
+        finally:
+            j["busy"] = False
+    threading.Thread(target=run, daemon=True).start()

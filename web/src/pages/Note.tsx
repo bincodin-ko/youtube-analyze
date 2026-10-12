@@ -14,6 +14,7 @@ import { LengthMenu, RichT, TermList, loadStyleReport, useTerms, type Report, ty
 import Clips from '../components/Clips'
 import Mindmap, { getMindmap, makeMindmap, type Level } from '../components/Mindmap'
 import { ExpandBody, ExpandMenu, useExpand } from '../components/Expand'
+import ReportFoot from '../components/ReportFoot'
 import Stage, { type Ctl } from '../components/Stage'
 
 // ---- YouTube IFrame 플레이어 ----
@@ -226,7 +227,7 @@ export default function NotePage() {
   const [right, setRight] = useState(true)
   const [tab, setTab] = useState<'video' | 'report' | 'chat'>('report')
   const [time, setTime] = useState(0)
-  const [mode, setMode] = useState<'summary' | 'expand'>('summary')
+  const [mode, setMode] = useState<'summary' | 'expand'>(() => new URLSearchParams(location.search).get('ext') ? 'expand' : 'summary') // ?ext=키면 그 확장 리포트로
   // 길이·난이도 리포트(짧게·길게·쉽게): 한 번 받은 건 alts에 두고 바로 표시
   const [style, setStyle] = useState<Style>('default')
   const [alts, setAlts] = useState<Partial<Record<Style, Report>>>({})
@@ -359,12 +360,13 @@ export default function NotePage() {
               <div className="pt-24 flex items-center gap-3 text-[16px]"><Loader2 size={18} className="animate-spin" />리포트를 다시 쓰는 중이에요 (30~60초)</div>
             ) : mode === 'expand' ? (
               <>
-                <ExpandBody ex={ex} note={note} seek={seek}>
+                <ExpandBody ex={ex} note={note} seek={seek} hasMindmap={Object.values(mds).some(Boolean)}>
                 <h1 className="text-[32px] font-bold leading-[1.35] mt-[88px] mb-10 break-keep">{r.title}</h1>
                 <h3 className="text-[14px] font-bold mb-3">마인드맵</h3>
                 <Mindmap md={md} busy={mmBusy} prog={mmProg} level={mmLevel} setLevel={setMmLevel} onRegen={genMindmap} name={note.title}
                   onSeek={(tok) => { seek(tok.includes(':') ? Number(tok.split(':')[0]) * 60 + Number(tok.split(':')[1]) : Number(tok)); if (!art && matchMedia('(max-width:1099px)').matches) setTab('video') }}
-                  onAsk={(t) => rn.pick('ask', `「${t}」 이 부분 자세히 설명해줘`, '')} />
+                  onAsk={(t) => rn.pick('ask', `「${t}」 이 부분 자세히 설명해줘`, '')}
+                  onDelete={() => fetch(`/api/notes/${id}/mindmap?level=${mmLevel}`, { method: 'DELETE' }).then(() => setMds((o) => ({ ...o, [mmLevel]: undefined })))} />
                 {mmErr && <p className="mt-3 text-[14px] text-muted">{mmErr}</p>}
                 </ExpandBody>
               </>
@@ -412,6 +414,10 @@ export default function NotePage() {
                   </div>
                 ))}
                 <TermList terms={terms} />
+                <ReportFoot id={note.id} fkey={`report_${style}`} fb={ex.fb.fb} onFb={ex.fb.set} collectionId={note.collection_id} file={`${note.title}-요약.md`}
+                  text={() => [`# ${r.title}`, '', r.overview, '', ...r.key_points.map((k) => `- ${k}`), ...r.sections.flatMap((s) => ['', `## ${s.title}`, ...s.children.flatMap((c) => [`### ${c.title}`, ...c.bullets.map((b) => `- ${b.text}`)])])].join('\n')}
+                  sugg={[['quote', '중요 인용구 한눈에 보기'], ['action', '바로 적용할 수 있는 액션 아이템 도출'], ['background', '관련 배경지식 심층 탐색']].map(([key, label]) => ({ key, label }))}
+                  onSugg={(k) => { setMode('expand'); ex.add([k]) }} />
               </>
             )}
           </div>

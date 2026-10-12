@@ -242,6 +242,123 @@ def sc_real_big(pg, ex):  # --online: 크게 보기에서 가운데 짧게 누�
     assert pg.evaluate("document.fullscreenElement && document.fullscreenElement.tagName") == "IFRAME", "크게 보기에서 전체화면 버튼이 안 먹음"
 
 
+# ---- 릴리스 확장 기능 1묶음 (mimic/lilys-ext/spec.md A·B·C·D·E·G). 생성(POST)은 가짜 응답으로 바꿔 끼워 요청 내용만 확인 ----
+def _exts_without(pg, drop):  # 시드 노트의 확장 결과 중 일부를 "아직 안 만든" 상태로 보이게
+    def h(r):
+        resp = r.fetch(); d = resp.json()
+        for k in drop: d.pop(k, None)
+        r.fulfill(response=resp, json=d)
+    pg.route("**/api/notes/*/ext", h)
+def _open_add(pg):
+    pg.get_by_role("button", name="확장", exact=True).click()
+    pg.get_by_role("button", name="확장 리포트 목록").click()
+    pg.get_by_role("button", name="확장 리포트 추가").click()
+    return pg.get_by_role("dialog", name="확장 리포트 추가")
+def sc_add_modal(pg, ex):  # G: 칸 구성·기본 선택·이미 만든 것 흐림·☆로 추천↔즐겨찾기(새로고침 유지)
+    dlg = _open_add(pg)
+    for sec in ("추천", "더 깊이 이해하기", "시각자료", "이해 점검하기"):
+        ex(dlg.locator(f"[data-sec='{sec}']")).to_have_count(1)
+    ex(dlg.get_by_text("나만의 템플릿")).to_be_visible()
+    ex(dlg.locator("[data-tpl='quote']").first).to_have_attribute("aria-pressed", "true")  # 영상 노트: 중요 인용구 미리 선택
+    ex(dlg.get_by_role("button", name="1개 추가")).to_be_visible()
+    ex(dlg.locator("[data-tpl='infographic']").first).to_be_disabled()  # 시드에 이미 있음
+    dlg.locator("[data-tpl='quote']").first.click(); ex(dlg.get_by_role("button", name="추가", exact=True)).to_be_disabled()
+    dlg.get_by_role("button", name="퀴즈 즐겨찾기").first.click()
+    ex(dlg.locator("[data-sec='즐겨찾기']")).to_have_count(1); ex(dlg.locator("[data-sec='추천']")).to_have_count(0)
+    pg.reload(); dlg = _open_add(pg)
+    ex(dlg.locator("[data-sec='즐겨찾기']")).to_have_count(1)
+    dlg.get_by_role("button", name="퀴즈 즐겨찾기").first.click()
+    ex(dlg.locator("[data-sec='추천']")).to_have_count(1)
+    dlg.get_by_role("button", name="접기").click(); ex(dlg.locator("[data-sec='그 외']")).to_have_count(0)
+def sc_info_style(pg, ex):  # A: 인포그래픽 스타일 선택 → 만들기 요청에 style·extra → 결과 포스터가 그 스타일
+    _exts_without(pg, ["infographic", "cartoon"])
+    sent = []
+    seed = json.loads((DATA / "media" / VIDEO / "ext_infographic.json").read_text(encoding="utf-8"))
+    pg.route("**/api/notes/*/ext/infographic", lambda r: (sent.append(r.request.post_data_json), r.fulfill(json={**seed, "style": "handwriting"})))
+    dlg = _open_add(pg)
+    dlg.locator("[data-tpl='quote']").first.click(); dlg.locator("[data-tpl='infographic']").first.click(); dlg.get_by_role("button", name="1개 추가").click()
+    sp = pg.get_by_role("dialog", name="인포그래픽 스타일 선택")
+    ex(sp.get_by_role("radio")).to_have_count(6)
+    ex(sp.get_by_role("radio", name="원페이저 한 페이지 요약")).to_have_attribute("aria-checked", "true")
+    pg.screenshot(path=str(SHOTS / "info_style_picker.png"))
+    sp.get_by_role("radio", name="손글씨 스케치/손그림").click()
+    ex(sp.locator("[data-preview='handwriting'] [data-style='handwriting']")).to_be_visible()
+    sp.get_by_role("button", name="취소").click(); ex(sp).to_have_count(0)
+    assert not sent, "취소했는데 만들기 요청이 나감"
+    _open_add(pg).locator("[data-tpl='infographic']").first.click()
+    pg.get_by_role("dialog", name="확장 리포트 추가").locator("[data-tpl='quote']").first.click()
+    pg.get_by_role("dialog", name="확장 리포트 추가").get_by_role("button", name="1개 추가").click()
+    sp.get_by_role("radio", name="손글씨 스케치/손그림").click()
+    sp.get_by_role("button", name="고급 설정").click(); sp.get_by_label("추가 프롬프트 (선택사항)").fill("밝은 색상 사용")
+    sp.get_by_role("button", name="만들기").click()
+    ex(pg.locator("[data-style='handwriting']").first).to_be_visible()
+    assert sent and sent[-1] == {"style": "handwriting", "extra": "밝은 색상 사용"}, f"요청 내용: {sent}"
+    assert "Gaegu" in pg.locator("[data-style='handwriting']").first.evaluate("e => getComputedStyle(e).fontFamily"), "손글씨 글꼴 아님"
+def sc_toon_style(pg, ex):  # B: 만화 스타일 선택(6종·견본 그림) → 요청에 style
+    _exts_without(pg, ["cartoon"])
+    sent = []
+    pg.route("**/api/notes/*/cartoon", lambda r: (sent.append(r.request.post_data_json), r.fulfill(json={"busy": False})) if r.request.method == "POST" else r.continue_())
+    dlg = _open_add(pg)
+    dlg.locator("[data-tpl='quote']").first.click(); dlg.locator("[data-tpl='cartoon']").first.click(); dlg.get_by_role("button", name="1개 추가").click()
+    sp = pg.get_by_role("dialog", name="만화 스타일 선택")
+    ex(sp.get_by_role("radio")).to_have_count(6)
+    for k, label in (("webtoon", "웹툰 한국 웹툰"), ("chibi", "치비 귀여운 SD 캐릭터")):
+        sp.get_by_role("radio", name=label).click()
+        pg.wait_for_function("k => { const i = document.querySelector(`[data-preview='${k}'] img`); return i && i.complete && i.naturalWidth > 0 }", arg=k)
+    pg.screenshot(path=str(SHOTS / "toon_style_picker.png"))
+    sp.get_by_role("button", name="만들기").click()
+    pg.wait_for_timeout(500)
+    assert sent and sent[-1].get("style") == "chibi", f"요청 내용: {sent}"
+def sc_web_src(pg, ex):  # C: 웹 출처 칩·삽화·웹 없음 안내
+    def h(r):
+        resp = r.fetch(); d = resp.json()
+        d["background"] = {"kind": "md", "title": "관련 배경지식", "blocks": [{"heading": "시험 인물: 설명", "illust": "a person", "img": "s_0029.jpg",
+                           "bullets": [{"text": "**시험** 문장", "refs": [0], "src": [{"url": "https://www.example.com/a", "title": "예시"}]}]}]}
+        d["counter"] = {**d.get("counter", {"kind": "md", "title": "반대", "blocks": [{"heading": "h", "bullets": [{"text": "t", "refs": []}]}]}), "noweb": True}
+        r.fulfill(response=resp, json=d)
+    pg.route("**/api/notes/*/ext", h)
+    pg.route("**/api/notes/*/ext/*/illust", lambda r: r.fulfill(json={"job": None}))
+    pg.goto(pg.url.split("?")[0] + "?ext=background")
+    a = pg.locator("a[data-src]").first
+    ex(a).to_have_text("example.com"); ex(a).to_have_attribute("href", "https://www.example.com/a"); ex(a).to_have_attribute("target", "_blank")
+    ex(pg.locator("img[data-illust]")).to_have_count(1)
+    pg.screenshot(path=str(SHOTS / "web_sources.png"))
+    pg.goto(pg.url.split("?")[0] + "?ext=counter")
+    ex(pg.locator("[data-noweb]")).to_be_visible()
+def sc_report_foot(pg, ex):  # D: 👍 저장(새로고침 유지)·↻ 확인 창·💡 확장 추천 3줄·컬렉션 지정·주소 ?ext= 유지
+    sent = []
+    pg.route("**/api/notes/*/ext/background", lambda r: (sent.append(r.request.url), r.fulfill(json={"kind": "md", "title": "배경지식 결과", "blocks": [{"heading": "h", "bullets": [{"text": "t", "refs": []}]}]})))
+    pg.goto(pg.url.split("?")[0] + "?ext=action")
+    foot = pg.locator("[data-foot]").last
+    ex(foot).to_be_visible()
+    foot.get_by_role("button", name="좋아요").click(); ex(foot.get_by_role("button", name="좋아요")).to_have_attribute("aria-pressed", "true")
+    pg.wait_for_timeout(300); pg.reload()
+    ex(pg.locator("[data-foot]").last.get_by_role("button", name="좋아요")).to_have_attribute("aria-pressed", "true")
+    foot = pg.locator("[data-foot]").last
+    foot.get_by_role("button", name="좋아요").click()  # 되돌림
+    foot.get_by_role("button", name="다시 만들기").click()
+    ex(pg.get_by_role("dialog", name="다시 만들기 확인")).to_be_visible()
+    pg.get_by_role("dialog", name="다시 만들기 확인").get_by_role("button", name="취소").click()
+    lines = foot.locator("h3:has-text('확장') ~ button")
+    ex(lines).to_have_count(3)
+    foot.get_by_role("button", name="컬렉션 지정").click(); ex(pg.get_by_role("button", name="인박스")).to_be_visible(); pg.keyboard.press("Escape")
+    ex(pg.get_by_role("button", name="인박스")).to_have_count(0)
+    pg.screenshot(path=str(SHOTS / "report_foot.png"))
+    foot.get_by_role("button", name="관련 배경지식 심층 탐색").click()
+    ex(pg.get_by_role("heading", name="배경지식 결과")).to_be_visible()
+    assert sent, "추천 줄을 눌렀는데 생성 요청 없음"
+    assert "ext=background" in pg.url, f"주소에 ?ext= 없음: {pg.url}"
+def sc_mindmap_tools(pg, ex):  # E: ⓘ · 🗑(확인 후)
+    if not (DATA / "media" / VIDEO / "mindmap_normal.md").exists():
+        raise SkipCheck("캐시된 mindmap_normal.md 없음")
+    pg.get_by_role("button", name="확장", exact=True).click()
+    ex(pg.get_by_label("마인드맵 도움말")).to_be_visible()
+    pg.get_by_role("button", name="마인드맵 삭제").click()
+    ex(pg.get_by_text("이 상세도 마인드맵을 지울까요?")).to_be_visible()
+    pg.get_by_role("button", name="취소").click()
+    ex(pg.locator("svg g.markmap-node").first).to_be_visible()
+
+
 ONLINE = "--online" in sys.argv  # 실제 유튜브 접속이 필요한 시험(인터넷 상태에 따라 실패할 수 있어 기본에서 뺌)
 
 SCENARIOS = [
@@ -261,6 +378,12 @@ SCENARIOS = [
     ("player_hold2x", f"/note/{VIDEO}", 1440, False, sc_hold2x),
     ("player_big_hold", f"/note/{VIDEO}", 1440, False, sc_big_hold),
     ("player_space_input", f"/note/{VIDEO}", 1440, False, sc_space_input),
+    ("ext_add_modal", f"/note/{VIDEO}", 1440, False, sc_add_modal),
+    ("ext_info_style", f"/note/{VIDEO}", 1440, False, sc_info_style),
+    ("ext_toon_style", f"/note/{VIDEO}", 1440, False, sc_toon_style),
+    ("ext_web_src", f"/note/{VIDEO}", 1440, False, sc_web_src),
+    ("ext_report_foot", f"/note/{VIDEO}", 1440, False, sc_report_foot),
+    ("ext_mindmap_tools", f"/note/{VIDEO}", 1440, False, sc_mindmap_tools),
 ] + ([("player_real_2x", f"/note/{VIDEO}", 1440, False, sc_real2x), ("player_real_big", f"/note/{VIDEO}", 1440, False, sc_real_big)] if ONLINE else [])
 
 
@@ -283,6 +406,8 @@ def run_ui(base):
                 u = urlparse(r.request.url)
                 if u.hostname != "127.0.0.1" and not online:
                     return r.abort()  # 외부(유튜브 등) 차단 → 결정적
+                if u.path.startswith("/api/") and r.request.method == "PUT" and u.path.endswith(("/feedback/report_default", "/feedback/action")):
+                    return r.continue_()  # 👍👎 저장 시험(시험용 복사 데이터에만 씀)
                 if u.path.startswith("/api/") and r.request.method != "GET":
                     blocked.append(f"{r.request.method} {u.path}"); return r.abort()  # AI·쓰기 동작 금지
                 r.continue_()
@@ -327,6 +452,11 @@ def main():
             nonlocal srv
             srv, base = start_server()
             run_ui(base)
+            def storage():  # F: 앱(pywebview)을 다시 켜도 ☆·크게 보기 등 localStorage 유지 — app.pyw 옵션 확인
+                # ponytail: 정적 검사만. 숨긴 창 2번 띄우는 실제 확인은 WebView2가 불안정해 NOTSOLUTION A로 보류(verify/webview_storage.py)
+                src = (ROOT / "app.pyw").read_text(encoding="utf-8")
+                assert "private_mode=False" in src and 'storage_path=str(ROOT / "data" / "webview")' in src, "app.pyw가 사생활 모드(재시작 때 설정 삭제)"
+            step("desktop:storage", storage)
         step("server+ui", go)
     if srv:
         srv.terminate(); srv.wait(10)  # 시작한 PID만

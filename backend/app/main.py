@@ -373,6 +373,14 @@ def make_mindmap(nid: str, level: str = "normal"):
     return StreamingResponse(gen(), media_type="text/plain; charset=utf-8", headers={"Cache-Control": "no-cache"})
 
 
+@app.delete("/api/notes/{nid}/mindmap")
+def del_mindmap(nid: str, level: str = "normal"):
+    from app import mindmap
+    db.get(nid) or _404()
+    if level in mindmap.LEVELS: mindmap.path(MEDIA, nid, level).unlink(missing_ok=True)
+    return {"ok": True}
+
+
 @app.get("/api/notes/{nid}/mindmap")
 def get_mindmap(nid: str, level: str = "normal"):
     from app import mindmap
@@ -525,18 +533,51 @@ def get_exts(nid: str):
     return {f.stem[4:]: json.loads(f.read_text(encoding="utf-8")) for f in fs}
 
 
+class ExtOpts(BaseModel):
+    style: str | None = None   # 인포그래픽 스타일 키
+    extra: str | None = None   # 「고급 설정 > 추가 프롬프트」
+
+
 @app.post("/api/notes/{nid}/ext/{key}")
-def make_ext(nid: str, key: str):
-    from app import templates
+def make_ext(nid: str, key: str, body: ExtOpts | None = None):
+    from app import cartoon, templates
     n = db.get(nid) or _404()
     if not n.get("report") or not ai or not templates.get(key) or templates.get(key)["kind"] in ("mindmap", "cartoon"):
         raise HTTPException(400, "만들 수 없는 템플릿이거나 리포트가 아직 없어요")
     try:
-        res = templates.generate(n, key)
+        res = templates.generate(n, key, body.model_dump() if body else None)
     except Exception as e:
         raise HTTPException(502, f"확장 리포트 생성 실패: {e}")
     templates.path(MEDIA, nid, key).write_text(json.dumps(res, ensure_ascii=False), encoding="utf-8")
+    if any(b.get("illust") for b in res.get("blocks") or []):
+        cartoon.illustrate(MEDIA, nid, key)  # 소제목 삽화는 뒤에서 한 장씩(그림 모델 없으면 건너뜀)
     return res
+
+
+@app.get("/api/notes/{nid}/ext/{key}/illust")
+def illust_state(nid: str, key: str):
+    from app import cartoon
+    db.get(nid) or _404()
+    return {"job": cartoon.JOBS.get(f"{nid}:{key}")}
+
+
+# ---- 리포트 아래 👍👎: data/media/<id>/feedback.json {키: 1|-1} (요약은 키 "report") ----
+@app.get("/api/notes/{nid}/feedback")
+def get_feedback(nid: str):
+    db.get(nid) or _404()
+    f = MEDIA / nid / "feedback.json"
+    return json.loads(f.read_text(encoding="utf-8")) if f.exists() else {}
+
+
+@app.put("/api/notes/{nid}/feedback/{key}")
+def set_feedback(nid: str, key: str, v: int = 0):
+    db.get(nid) or _404()
+    f = MEDIA / nid / "feedback.json"
+    d = json.loads(f.read_text(encoding="utf-8")) if f.exists() else {}
+    if v in (1, -1): d[key] = v
+    else: d.pop(key, None)
+    f.write_text(json.dumps(d), encoding="utf-8")
+    return d
 
 
 @app.delete("/api/notes/{nid}/ext/{key}")
@@ -544,17 +585,18 @@ def del_ext(nid: str, key: str):
     from app import templates
     db.get(nid) or _404()
     templates.path(MEDIA, nid, key).unlink(missing_ok=True)
+    shutil.rmtree(MEDIA / nid / f"ext_{key}", ignore_errors=True)  # 소제목 삽화
     return {"ok": True}
 
 
 # ---- 카툰 (cartoon.py): 시작은 POST(칸 번호를 주면 그 칸만 다시), 진행·결과는 GET 폴링 ----
 @app.post("/api/notes/{nid}/cartoon")
-def start_cartoon(nid: str, panel: int | None = None):
+def start_cartoon(nid: str, panel: int | None = None, body: ExtOpts | None = None):
     from app import cartoon
     n = db.get(nid) or _404()
     if not n.get("report") or not ai:
         raise HTTPException(400, "리포트가 아직 없어요")
-    return cartoon.start(MEDIA, n, panel)
+    return cartoon.start(MEDIA, n, panel, (body.style if body else None), (body.extra if body else None))
 
 
 @app.get("/api/notes/{nid}/cartoon")

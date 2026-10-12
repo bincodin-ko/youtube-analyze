@@ -1,8 +1,8 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Transformer } from 'markmap-lib'
 import { Markmap } from 'markmap-view'
 import fontUrl from 'pretendard/dist/web/variable/woff2/PretendardVariable.woff2?url'
-import { Download, Maximize2, Minus, Plus, RefreshCw, Scan } from 'lucide-react'
+import { Download, Info, Maximize2, Minus, Plus, RefreshCw, Scan, Trash2 } from 'lucide-react'
 
 const tf = new Transformer()
 let fontB64: string | undefined // 한 번 읽은 글꼴 캐시
@@ -14,10 +14,11 @@ const FONT = '400 13px/18px "Pretendard Variable",Pretendard,sans-serif'
 
 // 마인드맵 박스: 상단 상세도 선택 + 회색 배경 + 하단 회색 바(다시 생성·다운로드·전체화면 / 확대·축소).
 // [m:ss] 클릭 → onSeek, 노드 글 클릭 → onAsk(채팅 입력 채우기). 동그라미는 markmap 기본 접기.
-export default function Mindmap({ md, busy, prog, level, setLevel, onRegen, name, onSeek, onAsk }: {
+export default function Mindmap({ md, busy, prog, level, setLevel, onRegen, name, onSeek, onAsk, onDelete }: {
   md: string | null; busy: boolean; prog: number; level: Level; setLevel: (l: Level) => void; onRegen: () => void; name: string
-  onSeek: (tok: string) => void; onAsk: (text: string) => void
+  onSeek: (tok: string) => void; onAsk: (text: string) => void; onDelete?: () => void
 }) {
+  const [ask, setAsk] = useState(false)
   const box = useRef<HTMLDivElement>(null), svg = useRef<SVGSVGElement>(null), mm = useRef<Markmap | null>(null), home = useRef<() => void>(undefined)
   useEffect(() => {
     if (!svg.current || !md) return
@@ -74,6 +75,10 @@ export default function Mindmap({ md, busy, prog, level, setLevel, onRegen, name
           {LEVELS.map(([k, l]) => <button key={k} disabled={busy} onClick={() => setLevel(k)} className={`h-7 px-3 rounded text-[13px] disabled:opacity-60 ${level === k ? 'bg-white font-semibold text-[#222] shadow-sm' : 'text-[#666]'}`}>{l}</button>)}
         </div>
         {busy && <span className="text-[13px] text-[#666] truncate">만드는 중… 노드 {prog}개</span>}
+        <span tabIndex={0} title="노드 글을 누르면 채팅으로 물어보고, [시간]을 누르면 그 장면이 재생돼요. 동그라미를 누르면 가지를 접어요." aria-label="마인드맵 도움말" className="ml-auto grid place-items-center size-7 text-[#888]"><Info size={15} /></span>
+        {md && onDelete && (ask
+          ? <span className="flex items-center gap-1 text-[13px] text-[#666]">이 상세도 마인드맵을 지울까요?<button onClick={() => { setAsk(false); onDelete() }} className="h-7 px-2 rounded bg-red-600 text-white">삭제</button><button onClick={() => setAsk(false)} className="h-7 px-2 rounded bg-[#e4e4e1]">취소</button></span>
+          : <button onClick={() => setAsk(true)} aria-label="마인드맵 삭제" title="삭제" className="grid place-items-center size-7 rounded text-[#888] hover:bg-[#e4e4e1]"><Trash2 size={15} /></button>)}
       </div>
       {md ? <svg ref={svg} onClick={click} style={{ font: FONT, ['--markmap-font' as string]: FONT }} className="flex-1 min-h-0 w-full [&_text]:fill-[#222] [&_foreignObject]:text-[#222] [&_a]:text-[#6663fd] [&_a]:no-underline [&_a::before]:content-['['] [&_a::after]:content-[']'] [&_a]:cursor-pointer" />
         : <div className="flex-1 grid place-items-center text-center text-[14px] text-[#666] px-6">{busy ? `만드는 중… 노드 ${prog}개 (보통 1분 안팎)` : '이 상세도의 마인드맵이 아직 없어요. 아래 "생성"을 누르세요'}</div>}

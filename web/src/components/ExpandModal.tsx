@@ -1,19 +1,29 @@
-// "확장 리포트 추가" 창: 카테고리별 2열 카드(여러 개 선택) + 나만의 템플릿 만들기·수정·삭제
+// "확장 리포트 추가" 창(릴리스 구성): 추천(☆가 있으면 「즐겨찾기」로 바뀜) · 나만의 템플릿 · 더 깊이 이해하기 · 시각자료 · 이해 점검하기 · 그 외(접기).
+// 같은 카드가 여러 칸에 나올 수 있고(릴리스와 같음) 선택은 키 기준. 이미 만든 것은 흐리게+못 누름. 영상 노트는 「중요 인용구」가 미리 선택.
 import { useState } from 'react'
-import { Pencil, Plus, Settings, Star, Trash2, X } from 'lucide-react'
+import { ChevronDown, Pencil, Plus, Settings, Star, Trash2, X } from 'lucide-react'
 import type { Tpls } from './Expand'
 
 const lsGet = () => { try { return new Set<string>(JSON.parse(localStorage.getItem('tplStar') || '[]')) } catch { return new Set<string>() } }
-const CATS = ['추천', '더 깊이 이해하기', '노트 형식', '시각자료', '이해 점검하기']
+// 칸별 카드(키). 추천은 자료 종류별(릴리스: 영상=인용구·액션·배경·인포그래픽 / 웹 글=배경·심화조사·반대 시각·인포그래픽)
+const REC_VIDEO = ['quote', 'action', 'background', 'infographic']
+const REC_ARTICLE = ['background', 'deep', 'counter', 'infographic']
+const SECTIONS: [string, string[]][] = [
+  ['더 깊이 이해하기', ['background', 'counter', 'action', 'deep']],
+  ['시각자료', ['mindmap', 'infographic', 'cartoon']],
+  ['이해 점검하기', ['flash', 'quiz']],
+]
 
-export default function ExpandModal({ tpls, onClose, onAdd, onChanged }: {
-  tpls: Tpls; onClose: () => void; onAdd: (keys: string[]) => void; onChanged: () => void
+export default function ExpandModal({ tpls, made, youtube, article, onClose, onAdd, onChanged }: {
+  tpls: Tpls; made: Set<string>; youtube: boolean; article: boolean; onClose: () => void; onAdd: (keys: string[]) => void; onChanged: () => void
 }) {
-  const [sel, setSel] = useState<string[]>([])
+  const [sel, setSel] = useState<string[]>(() => (!article && !made.has('quote') ? ['quote'] : []))
   const [star, setStar] = useState(lsGet)
   const [manage, setManage] = useState(false)
+  const [more, setMore] = useState(true)
   const [form, setForm] = useState<{ key?: string; name: string; prompt: string } | null>(null)
   const [err, setErr] = useState('')
+  const names = Object.fromEntries(tpls.builtin.map((t) => [t.key, t]))
   const toggle = (k: string) => setSel((s) => (s.includes(k) ? s.filter((x) => x !== k) : [...s, k]))
   const flip = (k: string) => setStar((s) => {
     const n = new Set(s); n.has(k) ? n.delete(k) : n.add(k)
@@ -32,19 +42,28 @@ export default function ExpandModal({ tpls, onClose, onAdd, onChanged }: {
     await fetch(`/api/templates/${k}`, { method: 'DELETE' })
     setSel((s) => s.filter((x) => x !== k)); onChanged()
   }
-  const card = (k: string, name: string, desc?: string) => (
-    <div key={k} className="relative">
-      <button onClick={() => toggle(k)} title={desc}
-        className={`flex items-center w-full h-[44px] pl-3.5 pr-10 rounded-xl border text-[14px] text-left truncate ${sel.includes(k) ? 'border-fg bg-subtle' : 'border-line hover:bg-subtle'}`}>
-        <span className="truncate">{name}</span>
-      </button>
-      <button onClick={() => flip(k)} aria-label="즐겨찾기" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-fg">
-        <Star size={15} className={star.has(k) ? 'fill-accent text-fg' : ''} />
-      </button>
-    </div>
-  )
+  const card = (k: string, name: string, desc?: string) => {
+    const done = made.has(k), on = sel.includes(k)
+    return (
+      <div key={k} className="relative">
+        <button onClick={() => toggle(k)} disabled={done} title={done ? '이미 만들었어요' : desc} aria-pressed={on} data-tpl={k}
+          className={`flex items-center w-full h-[44px] pl-3.5 pr-10 rounded-xl border text-[14px] text-left truncate disabled:text-muted disabled:cursor-default ${on ? 'border-fg bg-subtle' : 'border-line enabled:hover:bg-subtle'}`}>
+          <span className="truncate">{name}</span>
+        </button>
+        <button onClick={() => flip(k)} aria-label={`${name} 즐겨찾기`} aria-pressed={star.has(k)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-fg">
+          <Star size={15} className={star.has(k) ? 'fill-fg text-fg' : ''} />
+        </button>
+      </div>
+    )
+  }
+  const cards = (keys: string[]) => keys.filter((k) => names[k]).map((k) => card(k, names[k].name, names[k].desc))
   const grid = 'grid grid-cols-2 gap-3'
   const head = 'text-[14px] text-soft mb-3'
+  const placed = new Set([...REC_VIDEO, ...REC_ARTICLE, ...SECTIONS.flatMap(([, ks]) => ks)])
+  const rest = tpls.builtin.map((t) => t.key).filter((k) => !placed.has(k) || k === 'quote')
+  const starred = [...tpls.builtin.map((t) => t.key), ...tpls.custom.map((t) => t.key)].filter((k) => star.has(k))
+  const custom = (k: string) => tpls.custom.find((t) => t.key === k)
+  void youtube // 댓글분석(유튜브 노트만)은 2묶음에서 「더 깊이 이해하기」에 들어감
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onClose}>
       <div role="dialog" aria-label="확장 리포트 추가" onClick={(e) => e.stopPropagation()} className="w-[480px] max-w-full max-h-[85vh] flex flex-col rounded-3xl bg-bg shadow-[0_8px_40px_rgba(0,0,0,.18)]">
@@ -65,32 +84,33 @@ export default function ExpandModal({ tpls, onClose, onAdd, onChanged }: {
           </div>
         ) : (
           <div className="p-6 overflow-y-auto scroll-thin">
-            {CATS.map((cat, ci) => {
-              const items = tpls.builtin.filter((t) => t.cat === cat)
-              return (
-                <div key={cat} className={ci ? 'mt-6' : ''}>
-                  <h3 className={head}>{cat}</h3>
-                  <div className={grid}>{items.map((t) => card(t.key, t.name, t.desc))}</div>
-                  {cat === '추천' && (
-                    <>
-                      <h3 className={head + ' mt-6 flex items-center gap-1.5'}>나만의 템플릿
-                        <button onClick={() => setManage(!manage)} aria-label="템플릿 관리" className={`hover:text-fg ${manage ? 'text-fg' : 'text-muted'}`}><Settings size={14} /></button>
-                      </h3>
-                      <div className={grid}>
-                        {tpls.custom.map((t) => manage ? (
-                          <div key={t.key} className="flex items-center h-[44px] pl-3.5 pr-2 rounded-xl border border-line text-[14px]">
-                            <span className="truncate flex-1">{t.name}</span>
-                            <button onClick={() => setForm(t)} aria-label="수정" className="p-1.5 text-muted hover:text-fg"><Pencil size={14} /></button>
-                            <button onClick={() => remove(t.key)} aria-label="삭제" className="p-1.5 text-muted hover:text-red-500"><Trash2 size={14} /></button>
-                          </div>
-                        ) : card(t.key, t.name))}
-                        <button onClick={() => { setErr(''); setForm({ name: '', prompt: '' }) }} className="flex items-center justify-center gap-1.5 h-[44px] rounded-xl bg-subtle text-[14px] hover:bg-line"><Plus size={15} />만들기</button>
-                      </div>
-                    </>
-                  )}
+            <div data-sec={starred.length ? '즐겨찾기' : '추천'}>
+              <h3 className={head}>{starred.length ? '즐겨찾기' : '추천'}</h3>
+              <div className={grid}>{starred.length ? starred.map((k) => custom(k) ? card(k, custom(k)!.name) : cards([k])) : cards(article ? REC_ARTICLE : REC_VIDEO)}</div>
+            </div>
+            <h3 className={head + ' mt-6 flex items-center gap-1.5'}>나만의 템플릿
+              <button onClick={() => setManage(!manage)} aria-label="템플릿 관리" className={`hover:text-fg ${manage ? 'text-fg' : 'text-muted'}`}><Settings size={14} /></button>
+            </h3>
+            <div className={grid}>
+              {tpls.custom.map((t) => manage ? (
+                <div key={t.key} className="flex items-center h-[44px] pl-3.5 pr-2 rounded-xl border border-line text-[14px]">
+                  <span className="truncate flex-1">{t.name}</span>
+                  <button onClick={() => setForm(t)} aria-label="수정" className="p-1.5 text-muted hover:text-fg"><Pencil size={14} /></button>
+                  <button onClick={() => remove(t.key)} aria-label="삭제" className="p-1.5 text-muted hover:text-red-500"><Trash2 size={14} /></button>
                 </div>
-              )
-            })}
+              ) : card(t.key, t.name))}
+              <button onClick={() => { setErr(''); setForm({ name: '', prompt: '' }) }} className="flex items-center justify-center gap-1.5 h-[44px] rounded-xl bg-subtle text-[14px] hover:bg-line"><Plus size={15} />만들기</button>
+            </div>
+            {SECTIONS.map(([cat, ks]) => (
+              <div key={cat} className="mt-6" data-sec={cat}>
+                <h3 className={head}>{cat}</h3>
+                <div className={grid}>{cards(ks)}</div>
+              </div>
+            ))}
+            {more && <div className={grid + ' mt-6'} data-sec="그 외">{cards(rest)}</div>}
+            <button onClick={() => setMore(!more)} aria-expanded={more} className="mt-5 mx-auto flex items-center gap-1 text-[14px] text-soft underline underline-offset-4">
+              {more ? '접기' : '더보기'}<ChevronDown size={14} className={more ? 'rotate-180' : ''} />
+            </button>
           </div>
         )}
         <div className="flex gap-3 p-4 shrink-0 border-t border-line">

@@ -128,7 +128,8 @@ def main():
     api = Api()
     w = webview.create_window("영상노트", html=LOADING, width=1440, height=900, min_size=(900, 600), background_color="#f4f5f4", text_select=True, js_api=api)
     api.window = w
-    webview.start(start_server, w, icon=str(ICON))
+    # 사생활 모드(기본값)면 앱을 끌 때 localStorage가 지워져 ☆·크게 보기 등 설정이 초기화됨 → 저장소를 data/webview에 유지
+    webview.start(start_server, w, icon=str(ICON), private_mode=False, storage_path=str(ROOT / "data" / "webview"))
 
 
 def install_shortcut():

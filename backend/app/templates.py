@@ -11,6 +11,17 @@ MD_FORMAT = """JSON 객체 하나만 출력(설명·코드펜스 금지):
 {"title":"결과 제목","blocks":[{"heading":"소제목","bullets":[{"text":"한 문장(**핵심어**는 굵게)","refs":[대본 줄 인덱스]}]}]}
 모든 글은 한국어. refs는 근거가 되는 대본 줄 인덱스 1~3개(실제 존재하는 번호만, 근거가 없으면 []). blocks 3~7개, block마다 bullets 2~6개."""
 
+# 웹 조사형(배경지식·반대 시각·심화조사): claude가 WebSearch/WebFetch로 찾아 bullet마다 출처 URL을 붙인다(읽기만)
+WEB_FORMAT = """먼저 WebSearch로 관련 자료를 찾아보고(필요하면 WebFetch로 열어 확인) 그 내용을 근거로 써라. 찾은 웹 자료는 bullet의 src에 붙인다.
+JSON 객체 하나만 출력(설명·코드펜스 금지):
+{"title":"결과 제목","blocks":[{"heading":"소제목","illust":"이 소제목을 표현할 삽화 장면을 영어 한 문장으로(글자 없음)","bullets":[{"text":"문장(**핵심어**는 굵게)","refs":[대본 줄 인덱스],"src":[{"url":"https://...","title":"페이지 제목"}]}]}]}
+모든 글은 한국어. refs는 대본 근거 줄 인덱스(없으면 []), src는 실제로 열어 본 웹 페이지만(없으면 []). URL을 지어내지 않는다."""
+WEB_KEYS = ("background", "counter", "deep")
+
+# 스타일 선택(릴리스 「인포그래픽 스타일 선택」과 같은 6종). 화면 테마는 web/src/components/Infographic.tsx THEMES
+INFO_STYLES = {"onepager": "한 페이지 요약", "colorful": "창의적이고 밝은", "scientific": "학술적·데이터 중심", "handwriting": "스케치·손그림 느낌",
+               "minimal": "심플하고 깔끔한", "corporate": "전문적·공식적인"}
+
 ICONS = "lightbulb target rocket users clock chart trending-up shield heart star book brain search settings wallet zap flag check-circle alert-triangle message-circle globe layers puzzle repeat award coins smile"
 LAYOUTS = ("steps", "compare", "stats", "timeline", "cycle")
 
@@ -25,9 +36,11 @@ BUILTIN = {
     "blog": dict(name="블로그 글", cat="추천", desc="그대로 올릴 수 있는 글 형태로", kind="md",
                  prompt="이 내용을 블로그 게시글로 다시 써라. title은 클릭하고 싶은 제목. blocks는 '도입', 본문 소제목 2~4개, '마무리' 순서이고 bullet은 문단처럼 자연스럽게 이어지는 서술 문장으로 쓴다."),
     "background": dict(name="관련 배경지식", cat="더 깊이 이해하기", desc="이 내용을 이해하는 데 필요한 맥락", kind="md",
-                       prompt="이 내용을 이해하는 데 필요한 배경지식을 설명하라(역사·개념·관련 분야·선행 지식). 대본에 없는 일반 지식은 refs를 []로 두되 확실한 사실만 쓰고 불확실하면 '일반적으로'라고 표시한다."),
+                       prompt="이 내용에 등장하는 핵심 인물·회사·사건·개념의 배경지식을 웹에서 조사해 설명하라. blocks는 3~5개이고 heading은 'Stuart Gardoll: OpenDesign을 이끄는 AI 엔지니어'처럼 '대상: 한 줄 설명' 형태. 각 block의 bullets는 2~4문장으로 그 대상이 무엇인지와 이 영상 내용과 어떻게 이어지는지를 쓴다."),
     "counter": dict(name="반대 시각 조사", cat="더 깊이 이해하기", desc="다른 의견과 반론, 한계점", kind="md",
-                    prompt="이 내용의 주장에 대한 반대 시각·반론·한계·예외 사례를 정리하라. 각 block은 '화자의 주장'(refs 필수)과 그에 대한 '반대 시각'을 한 쌍으로 묶는다. 근거 없는 수치를 지어내지 말고 불확실하면 그렇게 밝힌다."),
+                    prompt="이 내용의 주장에 대한 반대 시각·반론·한계를 웹에서 조사해 균형 있게 정리하라. title은 '반대 시각 조사: (주제 한 줄)'. 첫 block의 heading은 '원본 자료의 주장'이고 화자의 주장을 2~3문장(refs 필수)으로 요약한다. 그 뒤 block 3개의 heading은 '1. 반론 제목: 한 줄 요지', '2. ...', '3. ...'처럼 번호를 붙이고 bullets에 근거와 사례를 쓴다. 근거 없는 수치를 지어내지 않는다."),
+    "deep": dict(name="심화조사", cat="더 깊이 이해하기", desc="자료와 연결된 추가 리서치", kind="md",
+                 prompt="이 자료를 더 깊이 이해하기 위한 심화 조사 노트를 만들어라. title은 '심화 조사 노트'. blocks는 정확히 3개: '1. 서론'(이 자료의 가치와 더 알아봐야 할 지점 2~3문장), '2. 추가 리서치 주제'(더 조사할 질문 3개, bullet 하나가 질문 하나), '3. 추가 리서치 자료 목록'(웹에서 찾은 참고 자료 3~6개, bullet마다 자료 한 줄 소개 + src 필수)."),
     "minutes": dict(name="회의록", cat="노트 형식", desc="안건·논의·결정·할 일 형식", kind="md",
                     prompt="이 내용을 회의록 형식으로 정리하라. blocks는 '개요', '주요 논의', '결정 사항', '후속 할 일' 순서."),
     "recipe": dict(name="레시피", cat="노트 형식", desc="재료와 순서가 있는 요리법·절차", kind="md",
@@ -84,16 +97,35 @@ def path(media: Path, nid: str, key: str) -> Path:
     return media / nid / f"ext_{key}.json"
 
 
-def generate(note: dict, key: str) -> dict:
-    """템플릿 지시문 + 대본 → 결과 JSON(kind 포함). refs는 대본 범위 안의 정수만 남긴다."""
+def _src(x) -> list:
+    """웹 출처: http(s) URL만, 최대 3개."""
+    out = []
+    for u in x.get("src") or []:
+        url = str(u.get("url", "") if isinstance(u, dict) else u)
+        if re.match(r"https?://[^\s]+$", url): out.append({"url": url, "title": str(u.get("title") or "") if isinstance(u, dict) else ""})
+    return out[:3]
+
+
+def generate(note: dict, key: str, opts: dict | None = None) -> dict:
+    """템플릿 지시문 + 대본 → 결과 JSON(kind 포함). refs는 대본 범위 안의 정수만 남긴다.
+    opts: style(인포그래픽 스타일 키), extra(사용자 추가 지시). 배경지식·반대 시각·심화조사는 웹 검색(실패하면 웹 없이, noweb 표시)."""
+    opts = opts or {}
     t = get(key)
     tr = note["transcript"]
     n = len(tr)
+    web = key in WEB_KEYS
     body = t["prompt"] if t["kind"] != "md" or key in BUILTIN else \
         f"다음은 사용자가 만든 나만의 템플릿 지시문이다. 이 지시를 충실히 따라 결과를 만들어라.\n지시문: {t['prompt']}"
-    fmt = "" if t["kind"] != "md" else "\n" + MD_FORMAT
-    head = ai._kind(note, "너는 영상 대본을 바탕으로 요청된 형식의 학습 자료를 만드는 편집자다. 대본은 한 줄이 `[인덱스 mm:ss] 텍스트` 형식이다(해외 영상이면 번역해서 쓴다).\n" + body + fmt + "\n\n대본:\n")
-    prompt = head + "\n".join(f"[{i} {ai._mmss(s['start'])}] {s['text']}" for i, s in enumerate(tr))
+    style = opts.get("style") if opts.get("style") in INFO_STYLES else "onepager"
+    if t["kind"] == "infographic":
+        body += f"\n스타일: {INFO_STYLES[style]} 인포그래픽에 어울리는 어조와 분량으로 쓴다."
+    if (opts.get("extra") or "").strip():
+        body += "\n사용자 추가 요청(위 형식 규칙 안에서 반영): " + str(opts["extra"]).strip()[:500]
+    fmt = "" if t["kind"] != "md" else "\n" + (WEB_FORMAT if web else MD_FORMAT)
+
+    def build(fmt):
+        head = ai._kind(note, "너는 영상 대본을 바탕으로 요청된 형식의 학습 자료를 만드는 편집자다. 대본은 한 줄이 `[인덱스 mm:ss] 텍스트` 형식이다(해외 영상이면 번역해서 쓴다).\n" + body + fmt + "\n\n대본:\n")
+        return head + "\n".join(f"[{i} {ai._mmss(s['start'])}] {s['text']}" for i, s in enumerate(tr))
 
     def refs(x): return [i for i in x.get("refs", []) if isinstance(i, int) and 0 <= i < n]
 
@@ -106,15 +138,22 @@ def generate(note: dict, key: str) -> dict:
             bl = [{"icon": str(b.get("icon", "")), "heading": str(b["heading"]), "text": str(b["text"]), "stat": str(b.get("stat") or ""),
                    "ref": b["ref"] if isinstance(b.get("ref"), int) and 0 <= b["ref"] < n else None} for b in r["blocks"] if b.get("heading") and b.get("text")]
             if len(bl) < 2: raise ValueError("블록 부족")
-            out.update(subtitle=str(r.get("subtitle") or ""), layout=r["layout"] if r.get("layout") in LAYOUTS else "steps", blocks=bl[:6], takeaway=str(r.get("takeaway") or ""))
+            out.update(subtitle=str(r.get("subtitle") or ""), layout=r["layout"] if r.get("layout") in LAYOUTS else "steps", blocks=bl[:6], takeaway=str(r.get("takeaway") or ""), style=style)
         elif t["kind"] == "quiz":
             qs = [{"q": c["q"], "choices": c["choices"][:4], "answer": c["answer"], "explain": c.get("explain", ""), "refs": refs(c)}
                   for c in r["questions"] if c.get("q") and isinstance(c.get("choices"), list) and len(c["choices"]) >= 4 and c.get("answer") in (0, 1, 2, 3)]
             if len(qs) < 4: raise ValueError("문항 부족")
             out["questions"] = qs
         else:
-            out["blocks"] = [{"heading": b["heading"], "bullets": [{"text": x["text"], "refs": refs(x)} for x in b["bullets"] if x.get("text")]} for b in r["blocks"]]
+            out["blocks"] = [{"heading": b["heading"], **({"illust": str(b["illust"])} if b.get("illust") else {}),
+                              "bullets": [{"text": x["text"], "refs": refs(x), **({"src": _src(x)} if _src(x) else {})} for x in b["bullets"] if x.get("text")]} for b in r["blocks"]]
             out["blocks"] = [b for b in out["blocks"] if b["bullets"]]
             if not out["blocks"]: raise ValueError("내용 없음")
         return out
-    return ai._ask(prompt, 120, parse)
+    if not web:
+        return ai._ask(build(fmt), 120, parse)
+    try:  # 웹 검색은 claude 도구로만(읽기 전용). 오프라인·한도면 웹 없이 다시
+        return ai._ask(build(fmt), 420, parse, ("--tools", "WebSearch,WebFetch", "--allowedTools", "WebSearch,WebFetch"), fallback=False)
+    except Exception as e:
+        print(f"[templates] 웹 검색 실패, 웹 없이 생성: {e}")
+        return {**ai._ask(build("\n" + MD_FORMAT), 120, parse), "noweb": True}
