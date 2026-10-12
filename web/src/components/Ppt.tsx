@@ -98,8 +98,8 @@ export function PptPicker({ id, onClose, onMake }: { id: string; onClose: () => 
   const remove = (n: string) => fetch(`/api/notes/${id}/ppt/ref/${n}`, { method: 'DELETE' }).then(load)
   const step = (d: number) => setCount((c) => Math.max(2, Math.min(30, c + d)))
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onClose}>
-      <div role="dialog" aria-label="PPT 만들기" onClick={(e) => e.stopPropagation()} className="relative w-[536px] max-w-full max-h-[90vh] flex flex-col rounded-3xl bg-bg shadow-[0_8px_40px_rgba(0,0,0,.18)]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div role="dialog" aria-label="PPT 만들기" onClick={(e) => e.stopPropagation()} className="relative w-full min-w-0 max-w-[536px] max-h-[90vh] flex flex-col rounded-3xl bg-bg shadow-[0_8px_40px_rgba(0,0,0,.18)]">
         <button onClick={onClose} aria-label="닫기" className="absolute right-5 top-5 text-muted hover:text-fg"><X size={18} /></button>
         <div className="pt-8 pb-5 px-6 text-center shrink-0"><h2 className="text-[20px] font-bold">PPT 만들기</h2><p className="mt-2 text-[13px] text-soft">요약을 발표용 슬라이드 덱으로 만들어요</p></div>
         <div className="px-6 pb-4 overflow-y-auto scroll-thin">
@@ -215,8 +215,8 @@ function EditSlides({ id, deck, logo, at, onClose, onDone }: { id: string; deck:
     onDone(await r.json())
   }
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onClose}>
-      <div role="dialog" aria-label="슬라이드 수정" onClick={(e) => e.stopPropagation()} className="w-[1080px] max-w-full h-[min(720px,90vh)] flex flex-col rounded-3xl bg-bg shadow-[0_8px_40px_rgba(0,0,0,.18)]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div role="dialog" aria-label="슬라이드 수정" onClick={(e) => e.stopPropagation()} className="w-full min-w-0 max-w-[1080px] h-[min(720px,90vh)] flex flex-col rounded-3xl bg-bg shadow-[0_8px_40px_rgba(0,0,0,.18)]">
         <div className="relative px-7 pt-6 pb-4 border-b border-line shrink-0">
           <h2 className="text-[18px] font-bold">슬라이드 수정</h2><p className="mt-1 text-[13px] text-soft">바꾸고 싶은 슬라이드에만 지시를 적어주세요. 빈 칸은 그대로 유지됩니다.</p>
           <button onClick={onClose} aria-label="닫기" className="absolute right-6 top-6 text-muted hover:text-fg"><X size={18} /></button>

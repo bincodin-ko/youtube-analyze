@@ -347,7 +347,7 @@ export default function NotePage() {
             {!left && <button onClick={() => setLeft(true)} className={iconBtn + ' hidden min-[1100px]:grid'} title="펼치기"><ChevronsRight size={18} /></button>}
             <div className="flex rounded-lg border border-line overflow-hidden text-[14px] mr-1">
               {([['summary', FileText, '요약'], ['expand', Lightbulb, '확장']] as const).map(([k, Icon, l]) => (
-                <button key={k} onClick={() => setMode(k)} className={`flex items-center gap-1.5 h-[34px] px-3.5 ${mode === k ? 'bg-subtle font-semibold' : 'text-muted'}`}><Icon size={15} />{l}</button>
+                <button key={k} onClick={() => { setMode(k); ex.syncUrl(k === 'expand') }} className={`flex items-center gap-1.5 h-[34px] px-3.5 whitespace-nowrap shrink-0 max-[480px]:px-2.5 ${mode === k ? 'bg-subtle font-semibold' : 'text-muted'}`}><Icon size={15} />{l}</button>
               ))}
             </div>
             {mode === 'expand' && <ExpandMenu ex={ex} />}

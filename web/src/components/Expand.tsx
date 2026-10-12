@@ -47,11 +47,13 @@ export function useExpand(id: string, on: boolean, onMindmap: () => void) {
   const [modal, setModal] = useState(false)
   const [pick, setPick] = useState<string[]>([])
   const fb = useFeedback(id)
-  const setCur = (k: string) => {
-    setCurRaw(k)
-    const u = new URL(location.href); if (k === 'mindmap') u.searchParams.delete('ext'); else u.searchParams.set('ext', k)
+  // 주소 ?ext=키: 확장 탭에서 마인드맵이 아닌 리포트를 볼 때만 붙인다(요약으로 가면 지움 → 새로고침해도 요약)
+  const writeUrl = (k: string | null) => {
+    const u = new URL(location.href); if (!k || k === 'mindmap') u.searchParams.delete('ext'); else u.searchParams.set('ext', k)
     history.replaceState(history.state, '', u)
   }
+  const setCur = (k: string) => { setCurRaw(k); writeUrl(k) }
+  const syncUrl = (expand: boolean) => writeUrl(expand ? cur : null)
   const loadTpls = useCallback(() => { call<Tpls>('/api/templates').then(setTpls).catch(() => {}) }, [])
   const loadExts = useCallback(() => call<Record<string, Ext>>(`/api/notes/${id}/ext`).then(setExts).catch(() => {}), [id])
   useEffect(() => {
@@ -110,7 +112,10 @@ export function useExpand(id: string, on: boolean, onMindmap: () => void) {
   const picked = (k: string, o: Opts | null) => { setPick((p) => p.filter((x) => x !== k)); if (o) make(k, o) }
   const del = (k: string) => { call(`/api/notes/${id}/ext/${k}`, 'DELETE').then(() => { setExts((e) => { const { [k]: _, ...rest } = e; return rest }); setCur('mindmap') }) }
   const setExt = (k: string, x: Ext) => setExts((e) => ({ ...e, [k]: x }))
-  return { setExt, tpls, exts, cur, setCur, busy, prog, redo, makeToon, err, modal, setModal, loadTpls, nameOf, add, make, del, pick, picked, drawing, pollIllust, fb }
+  // 없는 키(?ext=zzz·지운 나만의 템플릿)로 들어오면 마인드맵으로
+  const known = cur === 'mindmap' || !!exts[cur] || busy.includes(cur) || pick.includes(cur) || tpls.builtin.some((t) => t.key === cur) || tpls.custom.some((t) => t.key === cur)
+  useEffect(() => { if (tpls.builtin.length && !known) setCur('mindmap') }, [tpls.builtin.length, known]) // eslint-disable-line react-hooks/exhaustive-deps
+  return { setExt, syncUrl, tpls, exts, cur, setCur, busy, prog, redo, makeToon, err, modal, setModal, loadTpls, nameOf, add, make, del, pick, picked, drawing, pollIllust, fb }
 }
 export type Ex = ReturnType<typeof useExpand>
 
@@ -121,7 +126,7 @@ export function ExpandMenu({ ex }: { ex: Ex }) {
   const keys = ['mindmap', ...new Set([...ex.busy.filter((k) => !ex.exts[k]), ...Object.keys(ex.exts).reverse()])]
   return (
     <div className="relative">
-      <button onClick={() => setOpen(!open)} aria-label={`확장 리포트 목록: ${ex.nameOf(ex.cur)}`} className="flex items-center gap-1 h-9 px-2 text-[15px] max-w-[130px]"><span className="truncate">{ex.nameOf(ex.cur)}</span><ChevronDown size={16} className="shrink-0" /></button>
+      <button onClick={() => setOpen(!open)} aria-label={`확장 리포트 목록: ${ex.nameOf(ex.cur)}`} className="flex items-center gap-1 h-9 px-2 text-[15px] max-w-[130px] min-w-0"><span className="truncate">{ex.nameOf(ex.cur)}</span><ChevronDown size={16} className="shrink-0" /></button>
       {open && (
         <>
           <Backdrop z="z-10" onClose={() => setOpen(false)} />

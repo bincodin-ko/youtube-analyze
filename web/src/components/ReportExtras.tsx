@@ -32,7 +32,7 @@ export function LengthMenu({ style, busy, onPick }: { style: Style; busy: boolea
   const [open, setOpen] = useState(false)
   return (
     <div className="relative">
-      <button onClick={() => setOpen(!open)} className="flex items-center gap-1 h-9 px-2 text-[15px]">{LABEL[style]}<ChevronDown size={16} /></button>
+      <button onClick={() => setOpen(!open)} className="flex items-center gap-1 h-9 px-2 text-[15px] whitespace-nowrap shrink-0">{LABEL[style]}<ChevronDown size={16} /></button>
       {open && (
         <>
           <Backdrop z="z-10" onClose={() => setOpen(false)} />

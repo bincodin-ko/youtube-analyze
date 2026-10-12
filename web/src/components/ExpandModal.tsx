@@ -67,7 +67,7 @@ export default function ExpandModal({ tpls, made, youtube, article, onClose, onA
   const custom = (k: string) => tpls.custom.find((t) => t.key === k)
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onClose}>
-      <div role="dialog" aria-label="확장 리포트 추가" onClick={(e) => e.stopPropagation()} className="w-[480px] max-w-full max-h-[85vh] flex flex-col rounded-3xl bg-bg shadow-[0_8px_40px_rgba(0,0,0,.18)]">
+      <div role="dialog" aria-label="확장 리포트 추가" onClick={(e) => e.stopPropagation()} className="w-full max-w-[480px] max-h-[85vh] flex flex-col rounded-3xl bg-bg shadow-[0_8px_40px_rgba(0,0,0,.18)]">
         <h2 className="relative h-[60px] shrink-0 grid place-items-center text-[16px] font-bold border-b border-line">
           {form ? (form.key ? '템플릿 수정' : '나만의 템플릿 만들기') : '확장 리포트 추가'}
           <button onClick={onClose} aria-label="닫기" className="absolute right-4 top-1/2 -translate-y-1/2 text-muted hover:text-fg"><X size={18} /></button>

@@ -17,8 +17,8 @@ export default function StylePicker({ title, sub, opts, preview, onClose, onMake
     addEventListener('keydown', k); return () => removeEventListener('keydown', k)
   }, [onClose])
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onClose}>
-      <div role="dialog" aria-label={title} onClick={(e) => e.stopPropagation()} className="relative w-[536px] max-w-full max-h-[90vh] flex flex-col rounded-3xl bg-bg shadow-[0_8px_40px_rgba(0,0,0,.18)]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div role="dialog" aria-label={title} onClick={(e) => e.stopPropagation()} className="relative w-full min-w-0 max-w-[536px] max-h-[90vh] flex flex-col rounded-3xl bg-bg shadow-[0_8px_40px_rgba(0,0,0,.18)]">
         <button onClick={onClose} aria-label="닫기" className="absolute right-5 top-5 text-muted hover:text-fg"><X size={18} /></button>
         <div className="pt-8 pb-5 px-6 text-center shrink-0">
           <h2 className="text-[20px] font-bold">{title}</h2>

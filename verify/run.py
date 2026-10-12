@@ -462,6 +462,26 @@ def sc_summary_bits(pg, ex):  # M
         ex(pg.get_by_placeholder("무엇이든 물어보세요")).to_have_value(re.compile(re.escape(name)))
 
 
+def _no_hscroll(pg, dlg, what):
+    w = dlg.evaluate("e => [e.scrollWidth, e.clientWidth, e.getBoundingClientRect().right, innerWidth]")
+    assert w[0] <= w[1] + 1 and w[2] <= w[3] + 1, f"{what} 가로 넘침: {w}"
+def sc_narrow_modals(pg, ex):  # 작은 창(1000px 미만은 확장 탭이 탭 전환): 추가 창·스타일 창·PPT 창이 화면 안에, 가로 넘침 없음
+    _exts_without(pg, ["infographic"])
+    pg.get_by_role("button", name="확장", exact=True).first.click()
+    pg.get_by_role("button", name="확장 리포트 목록").click(); pg.get_by_role("button", name="확장 리포트 추가").click()
+    dlg = pg.get_by_role("dialog", name="확장 리포트 추가"); _no_hscroll(pg, dlg, "추가 창")
+    pg.screenshot(path=str(SHOTS / "narrow_add.png"))
+    dlg.locator("[data-tpl='quote']").first.click(); dlg.locator("[data-tpl='infographic']").first.click(); dlg.locator("[data-tpl='ppt']").first.click()
+    dlg.get_by_role("button", name="2개 추가").click()
+    sp = pg.get_by_role("dialog", name="인포그래픽 스타일 선택"); _no_hscroll(pg, sp, "스타일 창")
+    ex(sp.get_by_role("button", name="만들기")).to_be_in_viewport()
+    pg.screenshot(path=str(SHOTS / "narrow_style.png"))
+    sp.get_by_role("button", name="취소").click()
+    pp = pg.get_by_role("dialog", name="PPT 만들기"); _no_hscroll(pg, pp, "PPT 창")
+    ex(pp.get_by_role("button", name="만들기")).to_be_in_viewport()
+    pg.screenshot(path=str(SHOTS / "narrow_ppt.png"))
+
+
 ONLINE = "--online" in sys.argv  # 실제 유튜브 접속이 필요한 시험(인터넷 상태에 따라 실패할 수 있어 기본에서 뺌)
 
 SCENARIOS = [
@@ -494,6 +514,7 @@ SCENARIOS = [
     ("ext_podcast", f"/note/{VIDEO}", 1440, False, sc_podcast),
     ("ext_animation", f"/note/{VIDEO}", 1440, False, sc_animation),
     ("summary_bits", f"/note/{VIDEO}", 1440, False, sc_summary_bits),
+    ("ext_narrow_390", f"/note/{VIDEO}", 390, False, sc_narrow_modals),
 ] + ([("player_real_2x", f"/note/{VIDEO}", 1440, False, sc_real2x), ("player_real_big", f"/note/{VIDEO}", 1440, False, sc_real_big)] if ONLINE else [])
 
 
