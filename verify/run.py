@@ -1,7 +1,7 @@
 """영상노트 verify: 빌드·린트 → 백엔드 자체 점검 → 시험 데이터 복사 → 빈 포트 서버 → Playwright headless 화면 시나리오.
 결과 .verify/summary.md + .verify/shots/*.png, 하나라도 실패하면 exit 1. 실제 data/는 읽기만 한다.
 실행: verify.bat (= uv run --project backend python verify/run.py)"""
-import json, os, shutil, socket, sqlite3, subprocess, sys, time, urllib.request
+import json, os, re, shutil, socket, sqlite3, subprocess, sys, time, urllib.request
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -359,6 +359,65 @@ def sc_mindmap_tools(pg, ex):  # E: ⓘ · 🗑(확인 후)
     ex(pg.locator("svg g.markmap-node").first).to_be_visible()
 
 
+# ---- 2묶음 (spec H·I·J): 글 템플릿 13개·댓글분석·표·스크립트·PPT ----
+REST13 = ["스크립트", "타임스탬프", "교재", "보고서", "회의록", "사용자 인터뷰", "문헌검토", "투자 종목 분석", "투자 방법론", "논문 리뷰", "중요 인용구", "블로그", "말씀"]
+def sc_more_tpls(pg, ex):  # H·I: 그 외 칸 릴리스 순서, 댓글분석은 유튜브 노트만, PPT는 시각자료에 NEW
+    dlg = _open_add(pg)
+    names = dlg.locator("[data-sec='그 외'] button[data-tpl]").all_inner_texts()
+    assert [n.strip() for n in names[:13]] == REST13, f"그 외 순서: {names}"
+    ex(dlg.locator("[data-sec='더 깊이 이해하기'] [data-tpl='comments']")).to_have_count(1)
+    ex(dlg.locator("[data-sec='시각자료'] [data-tpl='ppt']")).to_contain_text("NEW")
+def sc_article_tpls(pg, ex):  # 웹 글 노트: 댓글분석 없음, 추천=배경·심화조사·반대 시각·인포그래픽
+    dlg = _open_add(pg)
+    ex(dlg.locator("[data-tpl='comments']")).to_have_count(0)
+    assert [t.strip() for t in dlg.locator("[data-sec='추천'] button[data-tpl]").all_inner_texts()] == ["관련 배경지식", "심화조사", "반대 시각 조사", "인포그래픽"]
+    ex(dlg.get_by_role("button", name="추가", exact=True)).to_be_disabled()  # 웹 글은 기본 선택 없음
+def sc_script_table(pg, ex):  # 스크립트(AI 없이 실제 생성) + 표 그리기
+    def h(r):
+        resp = r.fetch(); d = resp.json(); d.pop("script", None)
+        d["stock"] = {"kind": "md", "title": "투자 종목 분석", "blocks": [{"heading": "표", "table": {"cols": ["종목", "근거", "리스크"], "rows": [["A사", "실적", "환율"], ["B사", "수주", "금리"]]}, "bullets": []}]}
+        r.fulfill(response=resp, json=d)
+    pg.route("**/api/notes/*/ext", h)
+    pg.goto(pg.url.split("?")[0] + "?ext=stock")
+    ex(pg.locator("table[data-table] th")).to_have_count(3); ex(pg.locator("table[data-table] tbody tr")).to_have_count(2)
+    dlg = _open_add(pg)
+    dlg.locator("[data-tpl='quote']").first.click(); dlg.locator("[data-tpl='script']").first.click(); dlg.get_by_role("button", name="1개 추가").click()
+    ex(pg.get_by_role("heading", name="00:00")).to_be_visible()
+DECK = {"kind": "ppt", "title": "시험 덱", "style": "cobalt", "accent": "", "slides": [
+    {"layout": "cover", "title": "표지 제목", "subtitle": "부제", "points": [], "stat": "", "quote": "", "ref": None},
+    {"layout": "two", "title": "비교", "subtitle": "", "points": [], "stat": "", "quote": "", "ref": None, "left": {"head": "전", "points": ["a"]}, "right": {"head": "후", "points": ["b"]}},
+    {"layout": "closing", "title": "마무리", "subtitle": "", "points": ["행동 1"], "stat": "", "quote": "", "ref": None}]}
+def sc_ppt(pg, ex):  # J: 만들기 창(9종·2~30장·지시) → 요청 → 카드·슬라이드쇼·장별 수정
+    sent = []
+    pg.route("**/api/notes/*/ppt", lambda r: (sent.append(r.request.post_data_json), r.fulfill(json=DECK)) if r.request.method == "POST" else r.continue_())
+    pg.route("**/api/notes/*/ppt/revise", lambda r: (sent.append(r.request.post_data_json), r.fulfill(json={**DECK, "slides": [DECK["slides"][0], {**DECK["slides"][1], "title": "고친 비교"}, DECK["slides"][2]]})))
+    dlg = _open_add(pg)
+    dlg.locator("[data-tpl='quote']").first.click(); dlg.locator("[data-tpl='ppt']").first.click(); dlg.get_by_role("button", name="1개 추가").click()
+    sp = pg.get_by_role("dialog", name="PPT 만들기")
+    ex(sp.get_by_role("radio")).to_have_count(9)
+    ex(sp.locator("[data-count]")).to_have_text("5")
+    sp.get_by_role("button", name="한 장 빼기").click(); ex(sp.locator("[data-count]")).to_have_text("4")
+    sp.get_by_role("radio", name="코발트").click(); sp.get_by_label("커스텀 지시").fill("숫자 위주로")
+    pg.screenshot(path=str(SHOTS / "ppt_picker.png"))
+    sp.get_by_role("button", name="만들기").click()
+    ex(pg.locator("[data-ppt] [data-slide]")).to_have_count(3)
+    assert sent[-1] == {"style": "cobalt", "count": 4, "extra": "숫자 위주로"}, sent
+    pg.screenshot(path=str(SHOTS / "ppt_deck.png"))
+    pg.get_by_role("button", name="슬라이드쇼").click()
+    show = pg.get_by_role("dialog", name="슬라이드쇼")
+    ex(show.locator("[data-pos]")).to_have_text("1 / 3"); pg.keyboard.press("ArrowRight"); ex(show.locator("[data-pos]")).to_have_text("2 / 3")
+    pg.keyboard.press("Escape"); ex(show).to_have_count(0)
+    pg.locator("[data-slide='1']").hover(); pg.get_by_role("button", name="2번 슬라이드 수정").click()
+    ed = pg.get_by_role("dialog", name="슬라이드 수정")
+    ex(ed.get_by_role("button", name="수정본 생성")).to_be_disabled()
+    ed.get_by_label("2번 슬라이드 변경").fill("색을 파랗게"); ex(ed.get_by_text("변경할 슬라이드 1개")).to_be_visible()
+    pg.screenshot(path=str(SHOTS / "ppt_edit.png"))
+    ed.get_by_role("button", name="수정본 생성").click()
+    ex(pg.locator("[data-ppt]")).to_contain_text("고친 비교")
+    assert sent[-1] == {"changes": {"1": "색을 파랗게"}}, sent
+    ex(pg.get_by_role("link", name="PPTX 다운로드")).to_have_attribute("href", re.compile(r"/ppt\.pptx$"))
+
+
 ONLINE = "--online" in sys.argv  # 실제 유튜브 접속이 필요한 시험(인터넷 상태에 따라 실패할 수 있어 기본에서 뺌)
 
 SCENARIOS = [
@@ -384,6 +443,10 @@ SCENARIOS = [
     ("ext_web_src", f"/note/{VIDEO}", 1440, False, sc_web_src),
     ("ext_report_foot", f"/note/{VIDEO}", 1440, False, sc_report_foot),
     ("ext_mindmap_tools", f"/note/{VIDEO}", 1440, False, sc_mindmap_tools),
+    ("ext_more_tpls", f"/note/{VIDEO}", 1440, False, sc_more_tpls),
+    ("ext_article_tpls", f"/note/{ARTICLE}", 1440, False, sc_article_tpls),
+    ("ext_script_table", f"/note/{VIDEO}", 1440, False, sc_script_table),
+    ("ext_ppt", f"/note/{VIDEO}", 1440, False, sc_ppt),
 ] + ([("player_real_2x", f"/note/{VIDEO}", 1440, False, sc_real2x), ("player_real_big", f"/note/{VIDEO}", 1440, False, sc_real_big)] if ONLINE else [])
 
 
@@ -408,6 +471,8 @@ def run_ui(base):
                     return r.abort()  # 외부(유튜브 등) 차단 → 결정적
                 if u.path.startswith("/api/") and r.request.method == "PUT" and u.path.endswith(("/feedback/report_default", "/feedback/action")):
                     return r.continue_()  # 👍👎 저장 시험(시험용 복사 데이터에만 씀)
+                if r.request.method == "POST" and u.path.endswith("/ext/script"):
+                    return r.continue_()  # 스크립트는 AI 없이 대본을 묶기만 함
                 if u.path.startswith("/api/") and r.request.method != "GET":
                     blocked.append(f"{r.request.method} {u.path}"); return r.abort()  # AI·쓰기 동작 금지
                 r.continue_()
@@ -443,7 +508,7 @@ def main():
     step("web:build", lambda: sh(["npm", "run", "build"], ROOT / "web"))
     step("web:lint", lambda: sh(["npm", "run", "lint"], ROOT / "web"))
     step("seed", seed)
-    for m in ("files", "scenes", "transcript"):
+    for m in ("files", "scenes", "transcript", "ppt"):
         step(f"backend:{m}", self_check(m))
     step("backend:import", lambda: sh([sys.executable, "-c", "import app.main"], ROOT / "backend", env_data()))
     srv = None

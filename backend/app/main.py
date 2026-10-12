@@ -542,7 +542,7 @@ class ExtOpts(BaseModel):
 def make_ext(nid: str, key: str, body: ExtOpts | None = None):
     from app import cartoon, templates
     n = db.get(nid) or _404()
-    if not n.get("report") or not ai or not templates.get(key) or templates.get(key)["kind"] in ("mindmap", "cartoon"):
+    if not n.get("report") or not ai or not templates.get(key) or templates.get(key)["kind"] in ("mindmap", "cartoon", "ppt"):
         raise HTTPException(400, "만들 수 없는 템플릿이거나 리포트가 아직 없어요")
     try:
         res = templates.generate(n, key, body.model_dump() if body else None)
@@ -586,6 +586,85 @@ def del_ext(nid: str, key: str):
     db.get(nid) or _404()
     templates.path(MEDIA, nid, key).unlink(missing_ok=True)
     shutil.rmtree(MEDIA / nid / f"ext_{key}", ignore_errors=True)  # 소제목 삽화
+    return {"ok": True}
+
+
+# ---- PPT (ppt.py): 만들기·장별 수정본·PPTX 다운로드·레퍼런스 이미지(최대 4장) ----
+class PptOpts(BaseModel):
+    style: str = "minimal"
+    count: int = 5
+    extra: str = ""
+
+
+class PptRevise(BaseModel):
+    changes: dict[int, str]
+
+
+@app.post("/api/notes/{nid}/ppt")
+def make_ppt(nid: str, body: PptOpts):
+    from app import ppt
+    n = db.get(nid) or _404()
+    if not n.get("report") or not ai: raise HTTPException(400, "리포트가 아직 없어요")
+    try: deck = ppt.generate(MEDIA, n, body.style, body.count, body.extra)
+    except Exception as e: raise HTTPException(502, f"PPT 생성 실패: {e}")
+    ppt.path(MEDIA, nid).write_text(json.dumps(deck, ensure_ascii=False), encoding="utf-8")
+    return deck
+
+
+@app.post("/api/notes/{nid}/ppt/revise")
+def revise_ppt(nid: str, body: PptRevise):
+    from app import ppt
+    n = db.get(nid) or _404()
+    f = ppt.path(MEDIA, nid)
+    if not f.exists(): raise HTTPException(404, "PPT가 아직 없어요")
+    try: deck = ppt.revise(MEDIA, n, json.loads(f.read_text(encoding="utf-8")), body.changes)
+    except Exception as e: raise HTTPException(502, f"수정본 생성 실패: {e}")
+    f.write_text(json.dumps(deck, ensure_ascii=False), encoding="utf-8")
+    return deck
+
+
+@app.get("/api/notes/{nid}/ppt.pptx")
+def ppt_file(nid: str):
+    from app import ppt
+    n = db.get(nid) or _404()
+    f = ppt.path(MEDIA, nid)
+    if not f.exists(): raise HTTPException(404, "PPT가 아직 없어요")
+    refs = sorted(ppt.ref_dir(MEDIA, nid).glob("*")) if ppt.ref_dir(MEDIA, nid).exists() else []
+    body = ppt.to_pptx(json.loads(f.read_text(encoding="utf-8")), refs[0] if refs else None)
+    name = re.sub(r'[\\/:*?"<>|]', "", n.get("title") or "slides")[:60] or "slides"
+    from urllib.parse import quote
+    return Response(body, media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                    headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(name)}.pptx"})
+
+
+@app.get("/api/notes/{nid}/ppt/ref")
+def list_ppt_refs(nid: str):
+    from app import ppt
+    db.get(nid) or _404()
+    d = ppt.ref_dir(MEDIA, nid)
+    return [f.name for f in sorted(d.glob("*"))] if d.exists() else []
+
+
+@app.post("/api/notes/{nid}/ppt/ref")
+async def add_ppt_ref(nid: str, file: UploadFile):
+    from app import ppt
+    db.get(nid) or _404()
+    d = ppt.ref_dir(MEDIA, nid); d.mkdir(parents=True, exist_ok=True)
+    ext = Path(file.filename or "").suffix.lower()
+    if ext not in (".png", ".jpg", ".jpeg", ".webp"): raise HTTPException(400, "PNG·JPG·WEBP 이미지만 넣을 수 있어요")
+    if len(list(d.glob("*"))) >= 4: raise HTTPException(400, "레퍼런스 이미지는 최대 4장이에요")
+    data = await file.read()
+    if len(data) > 8 * 1024 * 1024: raise HTTPException(400, "이미지는 8MB 이하만 넣을 수 있어요")
+    name = f"{int(time.time() * 1000)}{ext}"; (d / name).write_bytes(data)
+    return {"name": name}
+
+
+@app.delete("/api/notes/{nid}/ppt/ref/{name}")
+def del_ppt_ref(nid: str, name: str):
+    from app import ppt
+    db.get(nid) or _404()
+    f = ppt.ref_dir(MEDIA, nid) / Path(name).name
+    f.unlink(missing_ok=True)
     return {"ok": True}
 
 

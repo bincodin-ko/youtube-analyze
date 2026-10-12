@@ -8,9 +8,11 @@ const lsGet = () => { try { return new Set<string>(JSON.parse(localStorage.getIt
 // 칸별 카드(키). 추천은 자료 종류별(릴리스: 영상=인용구·액션·배경·인포그래픽 / 웹 글=배경·심화조사·반대 시각·인포그래픽)
 const REC_VIDEO = ['quote', 'action', 'background', 'infographic']
 const REC_ARTICLE = ['background', 'deep', 'counter', 'infographic']
+// 그 외(접기) 칸: 릴리스 순서 + 우리만 있는 것(강의노트·레시피·공부카드)
+const REST = ['script', 'timestamp', 'textbook', 'report', 'minutes', 'interview', 'litreview', 'stock', 'investmethod', 'paperreview', 'quote', 'blog', 'sermon', 'lecture', 'recipe', 'study']
 const SECTIONS: [string, string[]][] = [
-  ['더 깊이 이해하기', ['background', 'counter', 'action', 'deep']],
-  ['시각자료', ['mindmap', 'infographic', 'cartoon']],
+  ['더 깊이 이해하기', ['background', 'counter', 'action', 'deep', 'comments']],
+  ['시각자료', ['ppt', 'mindmap', 'infographic', 'cartoon']],
   ['이해 점검하기', ['flash', 'quiz']],
 ]
 
@@ -48,7 +50,7 @@ export default function ExpandModal({ tpls, made, youtube, article, onClose, onA
       <div key={k} className="relative">
         <button onClick={() => toggle(k)} disabled={done} title={done ? '이미 만들었어요' : desc} aria-pressed={on} data-tpl={k}
           className={`flex items-center w-full h-[44px] pl-3.5 pr-10 rounded-xl border text-[14px] text-left truncate disabled:text-muted disabled:cursor-default ${on ? 'border-fg bg-subtle' : 'border-line enabled:hover:bg-subtle'}`}>
-          <span className="truncate">{name}</span>
+          <span className="truncate">{name}</span>{k === 'ppt' && <span className="ml-1.5 px-1.5 rounded bg-accent text-[#0c0d08] text-[10px] font-bold leading-[16px]">NEW</span>}
         </button>
         <button onClick={() => flip(k)} aria-label={`${name} 즐겨찾기`} aria-pressed={star.has(k)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-fg">
           <Star size={15} className={star.has(k) ? 'fill-fg text-fg' : ''} />
@@ -56,14 +58,13 @@ export default function ExpandModal({ tpls, made, youtube, article, onClose, onA
       </div>
     )
   }
-  const cards = (keys: string[]) => keys.filter((k) => names[k]).map((k) => card(k, names[k].name, names[k].desc))
+  const cards = (keys: string[]) => keys.filter((k) => names[k] && (k !== 'comments' || youtube)).map((k) => card(k, names[k].name, names[k].desc))
   const grid = 'grid grid-cols-2 gap-3'
   const head = 'text-[14px] text-soft mb-3'
   const placed = new Set([...REC_VIDEO, ...REC_ARTICLE, ...SECTIONS.flatMap(([, ks]) => ks)])
-  const rest = tpls.builtin.map((t) => t.key).filter((k) => !placed.has(k) || k === 'quote')
+  const rest = [...REST, ...tpls.builtin.map((t) => t.key).filter((k) => !placed.has(k) && !REST.includes(k))]
   const starred = [...tpls.builtin.map((t) => t.key), ...tpls.custom.map((t) => t.key)].filter((k) => star.has(k))
   const custom = (k: string) => tpls.custom.find((t) => t.key === k)
-  void youtube // 댓글분석(유튜브 노트만)은 2묶음에서 「더 깊이 이해하기」에 들어감
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onClose}>
       <div role="dialog" aria-label="확장 리포트 추가" onClick={(e) => e.stopPropagation()} className="w-[480px] max-w-full max-h-[85vh] flex flex-col rounded-3xl bg-bg shadow-[0_8px_40px_rgba(0,0,0,.18)]">

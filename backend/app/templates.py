@@ -31,9 +31,9 @@ BUILTIN = {
                     prompt="이 내용을 학생의 강의노트로 정리하라. blocks는 '핵심 개념', '세부 설명과 예시', '용어 정리', '한 줄 복습' 순서로 구성한다."),
     "quote": dict(name="중요 인용구", cat="추천", desc="기억할 만한 말을 그대로 뽑아서", kind="md",
                   prompt="대본에서 기억할 만한 인용구 6~10개를 골라라. 각 block은 주제 하나이며 bullet.text는 대본 표현을 거의 그대로 살린 따옴표 문장 뒤에 한 줄 맥락 설명을 덧붙인다."),
-    "action": dict(name="액션아이템 도출", cat="추천", desc="바로 해볼 일을 우선순위로", kind="md",
+    "action": dict(name="내 액션아이템 도출", cat="추천", desc="바로 해볼 일을 우선순위로", kind="md",
                    prompt="이 내용에서 시청자가 실제로 실행할 수 있는 액션아이템을 도출하라. blocks는 '지금 바로(오늘)', '이번 주', '장기 과제' 순이며 각 bullet은 '동사로 시작하는 구체적 행동 + 왜 하는지'로 쓴다."),
-    "blog": dict(name="블로그 글", cat="추천", desc="그대로 올릴 수 있는 글 형태로", kind="md",
+    "blog": dict(name="블로그", cat="추천", desc="그대로 올릴 수 있는 글 형태로", kind="md",
                  prompt="이 내용을 블로그 게시글로 다시 써라. title은 클릭하고 싶은 제목. blocks는 '도입', 본문 소제목 2~4개, '마무리' 순서이고 bullet은 문단처럼 자연스럽게 이어지는 서술 문장으로 쓴다."),
     "background": dict(name="관련 배경지식", cat="더 깊이 이해하기", desc="이 내용을 이해하는 데 필요한 맥락", kind="md",
                        prompt="이 내용에 등장하는 핵심 인물·회사·사건·개념의 배경지식을 웹에서 조사해 설명하라. blocks는 3~5개이고 heading은 'Stuart Gardoll: OpenDesign을 이끄는 AI 엔지니어'처럼 '대상: 한 줄 설명' 형태. 각 block의 bullets는 2~4문장으로 그 대상이 무엇인지와 이 영상 내용과 어떻게 이어지는지를 쓴다."),
@@ -47,6 +47,28 @@ BUILTIN = {
                    prompt="이 내용을 레시피(따라 하는 절차) 형식으로 정리하라. blocks는 '준비물(재료·도구)', '단계별 순서'(bullet 하나가 한 단계), '주의할 점'. 요리가 아니면 작업 절차로 해석한다."),
     "study": dict(name="공부카드", cat="노트 형식", desc="시험 대비 요점 카드 모음", kind="md",
                   prompt="시험 대비용 공부카드 8~12개로 정리하라. 각 block의 heading은 개념 이름, bullets는 정의 1개와 외울 포인트 1~2개."),
+    # ---- 그 외(릴리스 「접기」 칸, 2026-10-13) — 결과 형식은 릴리스 고객센터 설명 기준(추측) ----
+    "script": dict(name="스크립트", cat="그 외", desc="전체 대화를 문단으로 읽기 좋게", kind="md", prompt=""),  # AI 없이 대본을 묶음(script_blocks)
+    "timestamp": dict(name="타임스탬프", cat="그 외", desc="시간순 목차", kind="md",
+                      prompt="이 내용을 시간순 목차(타임스탬프)로 정리하라. block 하나가 큰 구간이고 heading은 구간 제목, bullets는 그 구간의 세부 장면 2~5개를 한 줄씩(refs에 그 장면이 시작하는 대본 줄 1개 필수). 영상 전체를 빠짐없이 덮는다."),
+    "textbook": dict(name="교재", cat="그 외", desc="학습 목표·본문·정리·확인 문제", kind="md",
+                     prompt="이 내용을 교재 한 단원으로 만들어라. blocks는 '학습 목표', 본문 소단원 2~4개(개념 설명과 예시), '핵심 정리', '확인 문제'(문제 3~5개, 각 bullet 끝에 '(답: …)') 순서."),
+    "report": dict(name="보고서", cat="그 외", desc="개요·현황·분석·제언", kind="md",
+                   prompt="이 내용을 업무 보고서로 정리하라. blocks는 '요약(결론 먼저)', '배경', '주요 내용', '분석·시사점', '제언(다음 할 일)' 순서. 문장은 '~함', '~임'으로 끝나는 보고서체."),
+    "interview": dict(name="사용자 인터뷰", cat="그 외", desc="인터뷰 결과를 표로 비교", kind="md", table=True,
+                      prompt="이 내용을 사용자 인터뷰 분석으로 정리하라. 첫 block은 '인터뷰 개요'. 그다음 block 'table'에 응답자(또는 화자)별 비교표를 넣는다(cols 예: 응답자·주요 니즈·불편·인용). 이어서 '공통 인사이트', '제품 제안' block."),
+    "litreview": dict(name="문헌검토", cat="그 외", desc="선행연구를 주제별로 정리", kind="md",
+                      prompt="이 자료를 문헌검토 형식으로 정리하라. blocks는 '연구 질문', 주제별 선행 논의 2~4개(누가 무엇을 주장했는지), '연구 간 공통점·차이', '남은 연구 공백' 순서."),
+    "stock": dict(name="투자 종목 분석", cat="그 외", desc="실적·산업·전망을 표로", kind="md", table=True,
+                  prompt="이 내용을 투자 관점에서 분석하라. 첫 block은 '한 줄 결론'. 그다음 block 'table'에 언급된 종목·자산별 표(cols 예: 종목·근거·리스크·전망)를 넣는다. 이어서 '산업 동향', '체크포인트', '유의사항(투자 권유 아님)' block. 대본에 없는 숫자는 쓰지 않는다."),
+    "investmethod": dict(name="투자 방법론", cat="그 외", desc="투자 전략을 단계별로", kind="md",
+                         prompt="이 내용에 나온 투자 방법·전략을 배우기 쉽게 정리하라. blocks는 '핵심 원칙', '실행 단계'(bullet 하나가 한 단계), '자주 하는 실수', '적용 체크리스트', '유의사항(투자 권유 아님)' 순서."),
+    "paperreview": dict(name="논문 리뷰", cat="그 외", desc="핵심 기여·방법론·한계", kind="md",
+                        prompt="이 내용을 논문 리뷰 형식으로 정리하라. blocks는 '한 줄 요약', '연구 배경·문제', '핵심 기여', '방법론', '결과', '한계와 비판', '더 읽어 볼 질문' 순서. 어려운 용어는 괄호로 쉽게 풀어 쓴다."),
+    "sermon": dict(name="말씀", cat="그 외", desc="설교·강연을 본문·요지·적용으로", kind="md",
+                   prompt="이 내용을 설교(말씀) 노트로 정리하라. blocks는 '본문·주제', '핵심 메시지', 대지(요점) 2~4개, '삶에 적용하기', '기도·묵상 포인트' 순서. 인용된 구절은 그대로 살린다."),
+    "comments": dict(name="댓글분석", cat="더 깊이 이해하기", desc="시청자 반응과 여론", kind="md", prompt=""),  # 유튜브 댓글을 읽어 분석(comments.py)
+    "ppt": dict(name="PPT", cat="시각자료", desc="발표용 슬라이드 덱", kind="ppt", prompt=""),  # 생성은 ppt.py
     "mindmap": dict(name="마인드맵", cat="시각자료", desc="핵심 구조를 한눈에 가지로", kind="mindmap", prompt=""),
     "infographic": dict(name="인포그래픽", cat="시각자료", desc="핵심을 한 장의 도식 포스터로", kind="infographic",
                         prompt="""이 내용을 한 장짜리 인포그래픽(세로 포스터)용 데이터로 만들어라. 그림이 아니라 JSON만 만든다.
@@ -97,6 +119,55 @@ def path(media: Path, nid: str, key: str) -> Path:
     return media / nid / f"ext_{key}.json"
 
 
+TABLE_HINT = """
+표가 필요한 block은 bullets 대신(또는 함께) "table":{"cols":["열1","열2"],"rows":[["칸","칸"]]} 를 넣는다(열 2~5개, 행 2~10개, 칸은 짧게)."""
+
+
+def _table(t) -> dict | None:
+    """표: 열 2~6개, 행마다 열 수를 맞춘다. 형식이 틀리면 None."""
+    if not isinstance(t, dict) or not isinstance(t.get("cols"), list) or not isinstance(t.get("rows"), list): return None
+    cols = [str(c) for c in t["cols"]][:6]
+    if len(cols) < 2: return None
+    rows = [[str(c) for c in (r + [""] * len(cols))[:len(cols)]] for r in t["rows"] if isinstance(r, list)][:20]
+    return {"cols": cols, "rows": rows} if rows else None
+
+
+def script_blocks(note: dict) -> dict:
+    """「스크립트」: AI 없이 대본 전체를 약 3분(글은 12문단) 단위 문단으로 묶는다. 문단마다 시작 줄을 refs로."""
+    tr = note["transcript"]; art = note.get("kind") in ("article", "pdf")
+    blocks, cur, start = [], [], 0
+    for i, s in enumerate(tr):
+        if cur and ((i - start >= 12) if art else (s["start"] - tr[start]["start"] >= 180)):
+            blocks.append((start, cur)); cur, start = [], i
+        cur.append(s["text"].strip())
+    if cur: blocks.append((start, cur))
+    head = (lambda i: f"{i + 1}번째 문단부터") if art else (lambda i: ai._mmss(tr[i]["start"]))
+    return {"kind": "md", "title": f"스크립트: {note.get('title', '')}".strip(),
+            "blocks": [{"heading": head(i), "bullets": [{"text": " ".join(c), "refs": [i]}]} for i, c in blocks]}
+
+
+def _comments(note: dict) -> dict:
+    """「댓글분석」: 유튜브 공개 댓글(좋아요 순 최대 150개)을 읽어 여론·주요 의견·질문을 정리."""
+    from app import comments
+    if note.get("kind") != "video" or "youtu" not in (note.get("url") or ""):
+        raise ValueError("댓글분석은 유튜브 영상 노트에서만 할 수 있어요")
+    cs = comments.fetch(note["url"])
+    if not cs: raise ValueError("이 영상에는 읽을 수 있는 댓글이 없어요")
+    rep = note.get("report") or {}
+    prompt = ("너는 유튜브 댓글 여론을 분석하는 편집자다. 영상 요지와 댓글 목록(좋아요 수 포함)을 보고 시청자 반응을 정리하라.\n"
+              "blocks는 '전체 분위기'(긍정·부정·중립 비율을 대략 %로, 근거 포함), '많이 공감받은 의견'(댓글 표현을 살린 요약 3~5개, 끝에 (좋아요 n)), "
+              "'비판·반론', '시청자 질문', '제작자에게 주는 시사점' 순서. 댓글에 없는 내용을 지어내지 않는다. refs는 모두 [].\n" + MD_FORMAT +
+              f"\n\n영상 제목: {rep.get('title') or note.get('title')}\n영상 요지: {rep.get('overview', '')}\n\n댓글({len(cs)}개):\n" +
+              "\n".join(f"- (좋아요 {c['likes']}) {c['text'][:300]}" for c in cs))
+
+    def parse(r):
+        bl = [{"heading": b["heading"], "bullets": [{"text": x["text"], "refs": []} for x in b["bullets"] if x.get("text")]} for b in r["blocks"]]
+        bl = [b for b in bl if b["bullets"]]
+        if not bl: raise ValueError("내용 없음")
+        return {"kind": "md", "title": str(r.get("title") or "댓글분석"), "blocks": bl, "count": len(cs)}
+    return ai._ask(prompt, 180, parse)
+
+
 def _src(x) -> list:
     """웹 출처: http(s) URL만, 최대 3개."""
     out = []
@@ -114,6 +185,8 @@ def generate(note: dict, key: str, opts: dict | None = None) -> dict:
     tr = note["transcript"]
     n = len(tr)
     web = key in WEB_KEYS
+    if key == "script": return script_blocks(note)
+    if key == "comments": return _comments(note)
     body = t["prompt"] if t["kind"] != "md" or key in BUILTIN else \
         f"다음은 사용자가 만든 나만의 템플릿 지시문이다. 이 지시를 충실히 따라 결과를 만들어라.\n지시문: {t['prompt']}"
     style = opts.get("style") if opts.get("style") in INFO_STYLES else "onepager"
@@ -121,7 +194,7 @@ def generate(note: dict, key: str, opts: dict | None = None) -> dict:
         body += f"\n스타일: {INFO_STYLES[style]} 인포그래픽에 어울리는 어조와 분량으로 쓴다."
     if (opts.get("extra") or "").strip():
         body += "\n사용자 추가 요청(위 형식 규칙 안에서 반영): " + str(opts["extra"]).strip()[:500]
-    fmt = "" if t["kind"] != "md" else "\n" + (WEB_FORMAT if web else MD_FORMAT)
+    fmt = "" if t["kind"] != "md" else "\n" + (WEB_FORMAT if web else MD_FORMAT) + (TABLE_HINT if t.get("table") else "")
 
     def build(fmt):
         head = ai._kind(note, "너는 영상 대본을 바탕으로 요청된 형식의 학습 자료를 만드는 편집자다. 대본은 한 줄이 `[인덱스 mm:ss] 텍스트` 형식이다(해외 영상이면 번역해서 쓴다).\n" + body + fmt + "\n\n대본:\n")
@@ -145,9 +218,9 @@ def generate(note: dict, key: str, opts: dict | None = None) -> dict:
             if len(qs) < 4: raise ValueError("문항 부족")
             out["questions"] = qs
         else:
-            out["blocks"] = [{"heading": b["heading"], **({"illust": str(b["illust"])} if b.get("illust") else {}),
-                              "bullets": [{"text": x["text"], "refs": refs(x), **({"src": _src(x)} if _src(x) else {})} for x in b["bullets"] if x.get("text")]} for b in r["blocks"]]
-            out["blocks"] = [b for b in out["blocks"] if b["bullets"]]
+            out["blocks"] = [{"heading": b["heading"], **({"illust": str(b["illust"])} if b.get("illust") else {}), **({"table": _table(b["table"])} if _table(b.get("table")) else {}),
+                              "bullets": [{"text": x["text"], "refs": refs(x), **({"src": _src(x)} if _src(x) else {})} for x in b.get("bullets") or [] if x.get("text")]} for b in r["blocks"]]
+            out["blocks"] = [b for b in out["blocks"] if b["bullets"] or b.get("table")]
             if not out["blocks"]: raise ValueError("내용 없음")
         return out
     if not web:

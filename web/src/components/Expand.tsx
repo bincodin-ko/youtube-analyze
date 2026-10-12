@@ -9,16 +9,17 @@ import ExpandModal from './ExpandModal'
 import StylePicker from './StylePicker'
 import ReportFoot, { useFeedback } from './ReportFoot'
 import Cartoon, { type Toon } from './Cartoon'
+import { PptDeck, PptPicker, type Deck } from './Ppt'
 import Backdrop from './Backdrop'
 
 export type Tpls = { builtin: { key: string; name: string; cat: string; desc: string; kind: string }[]; custom: { key: string; name: string; prompt: string }[] }
 type Src = { url: string; title: string }
-type Blk = { heading: string; img?: string; illust?: string; bullets: { text: string; refs: number[]; src?: Src[] }[] }
-type Ext = Partial<Omit<Info, 'blocks'>> & { kind: 'md' | 'flash' | 'quiz' | 'infographic' | 'cartoon'; title: string; blocks?: any[]; cards?: Card[]; questions?: Quiz[]; noweb?: boolean }
-type Opts = { style?: string; extra?: string }
+type Blk = { heading: string; img?: string; illust?: string; table?: { cols: string[]; rows: string[][] }; bullets: { text: string; refs: number[]; src?: Src[] }[] }
+type Ext = Partial<Omit<Info, 'blocks'>> & { kind: 'md' | 'flash' | 'quiz' | 'infographic' | 'cartoon' | 'ppt'; title: string; blocks?: any[]; cards?: Card[]; questions?: Quiz[]; noweb?: boolean }
+type Opts = { style?: string; extra?: string; count?: number }
 
 // 만들기 전에 스타일을 고르는 템플릿(릴리스: 인포그래픽·카툰)
-const PICK = ['infographic', 'cartoon']
+const PICK = ['infographic', 'cartoon', 'ppt']
 const WEB = ['background', 'counter', 'deep'] // 웹 조사 + 소제목 삽화
 // 카툰 스타일 6종(릴리스 「만화 스타일 선택」 글자 그대로). 서버 cartoon.py STYLES와 같은 키
 export const TOON_STYLES = [
@@ -95,7 +96,7 @@ export function useExpand(id: string, on: boolean, onMindmap: () => void) {
   const make = (k: string, o?: Opts) => {
     if (k === 'cartoon') return makeToon(undefined, o)
     setBusy((b) => [...b, k])
-    call<Ext>(`/api/notes/${id}/ext/${k}`, 'POST', o).then((x) => { setExts((e) => ({ ...e, [k]: x })); if (WEB.includes(k)) pollIllust(k) })
+    call<Ext>(k === 'ppt' ? `/api/notes/${id}/ppt` : `/api/notes/${id}/ext/${k}`, 'POST', k === 'ppt' ? { style: 'minimal', count: 5, ...o } : o).then((x) => { setExts((e) => ({ ...e, [k]: x })); if (WEB.includes(k)) pollIllust(k) })
       .catch((e) => setErr(`${nameOf(k)}: ${e.message}`)).finally(() => setBusy((b) => b.filter((x) => x !== k)))
   }
   const nameOf = (k: string) => k === 'mindmap' ? '마인드맵' : tpls.builtin.find((t) => t.key === k)?.name ?? tpls.custom.find((t) => t.key === k)?.name ?? exts[k]?.title ?? k
@@ -107,7 +108,8 @@ export function useExpand(id: string, on: boolean, onMindmap: () => void) {
   }
   const picked = (k: string, o: Opts | null) => { setPick((p) => p.filter((x) => x !== k)); if (o) make(k, o) }
   const del = (k: string) => { call(`/api/notes/${id}/ext/${k}`, 'DELETE').then(() => { setExts((e) => { const { [k]: _, ...rest } = e; return rest }); setCur('mindmap') }) }
-  return { tpls, exts, cur, setCur, busy, prog, redo, makeToon, err, modal, setModal, loadTpls, nameOf, add, make, del, pick, picked, drawing, pollIllust, fb }
+  const setExt = (k: string, x: Ext) => setExts((e) => ({ ...e, [k]: x }))
+  return { setExt, tpls, exts, cur, setCur, busy, prog, redo, makeToon, err, modal, setModal, loadTpls, nameOf, add, make, del, pick, picked, drawing, pollIllust, fb }
 }
 export type Ex = ReturnType<typeof useExpand>
 
@@ -146,7 +148,10 @@ const host = (u: string) => { try { return new URL(u).hostname.replace(/^www\./,
 // 결과 → Markdown(복사·다운로드용)
 const toMd = (x: Ext) => {
   const out = [`# ${x.title}`]
-  if (x.kind === 'md') for (const b of x.blocks as Blk[]) { out.push('', `## ${b.heading}`); for (const t of b.bullets) out.push(`- ${t.text}${(t.src ?? []).map((s) => ` [${host(s.url)}](${s.url})`).join('')}`) }
+  if (x.kind === 'md') for (const b of x.blocks as Blk[]) {
+    out.push('', `## ${b.heading}`)
+    if (b.table) out.push('', `| ${b.table.cols.join(' | ')} |`, `|${b.table.cols.map(() => '---').join('|')}|`, ...b.table.rows.map((r) => `| ${r.join(' | ')} |`), '')
+    for (const t of b.bullets) out.push(`- ${t.text}${(t.src ?? []).map((s) => ` [${host(s.url)}](${s.url})`).join('')}`) }
   else if (x.kind === 'flash') x.cards!.forEach((c, i) => out.push('', `${i + 1}. ${c.q}`, `   - ${c.a}`))
   else if (x.kind === 'quiz') x.questions!.forEach((q, i) => out.push('', `${i + 1}. ${q.q}`, ...q.choices.map((c, j) => `   ${j === q.answer ? '✔' : '-'} ${c}`)))
   else if (x.kind === 'infographic') { out.push('', x.subtitle ?? ''); for (const b of (x.blocks ?? []) as { heading: string; text: string }[]) out.push(`- **${b.heading}** ${b.text}`); if (x.takeaway) out.push('', `> ${x.takeaway}`) }
@@ -169,7 +174,7 @@ export function ExpandBody({ ex, note, seek, hasMindmap, children }: { ex: Ex; n
   const made = new Set([...Object.keys(ex.exts), ...(hasMindmap ? ['mindmap'] : [])])
   const sugg = SUGG.filter(([k]) => !made.has(k) && !ex.busy.includes(k)).slice(0, 3).map(([key, label]) => ({ key, label }))
   const style = (x as { style?: string } | undefined)?.style
-  const foot = x && <ReportFoot id={note.id} fkey={ex.cur} fb={ex.fb.fb} onFb={ex.fb.set} busy={ex.busy.includes(ex.cur)} onRedo={() => ex.make(ex.cur, style ? { style } : undefined)}
+  const foot = x && <ReportFoot id={note.id} fkey={ex.cur} fb={ex.fb.fb} onFb={ex.fb.set} busy={ex.busy.includes(ex.cur)} onRedo={() => ex.make(ex.cur, x.kind === 'ppt' ? { style, count: (x as unknown as Deck).slides.length } : style ? { style } : undefined)}
     text={() => toMd(x)} file={`${note.title}-${ex.nameOf(ex.cur)}.md`} sugg={sugg} onSugg={(k) => ex.add([k])} collectionId={note.collection_id} />
   const pk = ex.pick[0]
   const dark = document.documentElement.classList.contains('dark')
@@ -182,6 +187,7 @@ export function ExpandBody({ ex, note, seek, hasMindmap, children }: { ex: Ex; n
       {pk === 'cartoon' && <StylePicker key={pk} title="만화 스타일 선택" sub="만들기를 누르면, 현재 자료들을 재미있는 만화로 바꿔드려요!" opts={TOON_STYLES}
         preview={(s) => <img src={`/styles/cartoon-${s}.jpg`} alt={`${TOON_STYLES.find((t) => t.key === s)?.name} 견본`} className="w-full h-full object-cover" />}
         onClose={() => ex.picked(pk, null)} onMake={(o) => ex.picked(pk, o)} />}
+      {pk === 'ppt' && <PptPicker key={pk} id={note.id} onClose={() => ex.picked(pk, null)} onMake={(o) => ex.picked(pk, o)} />}
       {ex.err && <p className="mt-4 text-[14px] text-muted">{ex.err}</p>}
       {ex.cur === 'mindmap' ? children : !x ? (
         <div className="pt-24 flex items-center gap-3 text-[16px]">
@@ -190,6 +196,7 @@ export function ExpandBody({ ex, note, seek, hasMindmap, children }: { ex: Ex; n
             : <>아직 만들지 않았어요 <button onClick={() => ex.add([ex.cur])} className="underline">만들기</button></>}
         </div>
       ) : (
+        x.kind === 'ppt' ? <div className="mt-[88px]"><PptDeck id={note.id} deck={x as unknown as Deck} onRevised={(d) => ex.setExt('ppt', d as unknown as Ext)} />{foot}</div> :
         x.kind === 'cartoon' ? <div className="mt-[88px]"><Cartoon id={note.id} data={x as unknown as Toon} name={note.title} prog={ex.prog} redo={ex.redo} onRedo={(i) => ex.makeToon(i)} onRef={(n) => { const t = note.transcript[n]?.start; if (t != null) seek(t) }} />{foot}</div> :
         x.kind === 'infographic' ? <div className="mt-[88px]"><Infographic key={ex.cur + (style ?? '')} data={x as unknown as Info} name={note.title} onRef={(n) => { const t = note.transcript[n]?.start; if (t != null) seek(t) }} />{foot}</div> : <>
           <h1 className="text-[32px] font-bold leading-[1.35] mt-[88px] mb-10 break-keep">{x.title}</h1>
@@ -201,6 +208,12 @@ export function ExpandBody({ ex, note, seek, hasMindmap, children }: { ex: Ex; n
             <div key={i} className="mb-10">
               <h2 className="text-[20px] font-bold mb-4">{b.heading}</h2>
               {b.img && <img data-illust="" src={`/media/${note.id}/${b.img}`} alt={b.heading} className="mb-5 w-full aspect-[4/3] object-cover rounded-xl bg-subtle" />}
+              {b.table && <div className="mb-5 overflow-x-auto rounded-xl border border-line">
+                <table data-table="" className="w-full text-[14px] leading-[1.6] border-collapse">
+                  <thead className="bg-subtle"><tr>{b.table.cols.map((c, k) => <th key={k} className="px-3 py-2 text-left font-semibold whitespace-nowrap border-b border-line">{c}</th>)}</tr></thead>
+                  <tbody>{b.table.rows.map((r, k) => <tr key={k} className="border-b border-line last:border-0">{r.map((c, m) => <td key={m} className="px-3 py-2 align-top break-keep">{c}</td>)}</tr>)}</tbody>
+                </table>
+              </div>}
               <ul className="list-disc pl-6 space-y-2 text-[16px] leading-[1.7] marker:text-muted">
                 {b.bullets.map((t, j) => <li key={j}><RichT text={t.text} terms={[]} seen={seen} />{refs(t.refs)}
                   {t.src?.map((s) => <a key={s.url} data-src="" href={s.url} target="_blank" rel="noreferrer noopener" title={s.title || s.url}
