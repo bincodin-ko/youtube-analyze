@@ -71,6 +71,16 @@ def seed():
         q = ",".join("?" * len(SEED_IDS))
         d.execute(f"DELETE FROM notes WHERE id NOT IN ({q})", SEED_IDS)
         d.execute("UPDATE notes SET status='done' WHERE status='processing'")  # 서버가 이어서 처리(AI 호출)하지 않게
+        # 사용자가 원본에서 시험 노트를 지웠으면 가장 최근 백업(notes.db.bak-*)에서 그 줄만 가져옴
+        have = {r[0] for r in d.execute("SELECT id FROM notes")}
+        for b in sorted(src.glob("notes.db.bak-*"), key=lambda p: p.stat().st_mtime, reverse=True):
+            miss = [i for i in SEED_IDS if i not in have]
+            if not miss: break
+            d.execute("ATTACH DATABASE ? AS b", (str(b),))  # 읽기만 함
+            try: d.execute(f"INSERT INTO notes SELECT * FROM b.notes WHERE id IN ({','.join('?' * len(miss))})", miss)
+            except sqlite3.Error: pass  # 옛 백업은 칸 구성이 달라 건너뜀
+            d.commit(); d.execute("DETACH DATABASE b")
+            have = {r[0] for r in d.execute("SELECT id FROM notes")}
         n = d.execute("SELECT count(*) FROM notes").fetchone()[0]
     d.close()
     if n != len(SEED_IDS):
