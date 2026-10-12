@@ -1,7 +1,7 @@
 """팟캐스트 음성(우리만 추가, 릴리스는 글만): 확장 리포트 「팟캐스트」의 문단을 음성 파일로.
 1순위 Edge 온라인 음성(edge-tts, 대본 글자가 MS 서버로 감 — 사용자 선택 2026-10-12), 실패하면 윈도우 내장 한국어 음성(Microsoft Heami, 로컬 wav).
 결과 data/media/<id>/podcast/p_<n>.mp3|.wav, 진행은 JOBS."""
-import asyncio, json, os, re, subprocess, threading
+import asyncio, json, os, re, subprocess, threading, time
 from pathlib import Path
 
 VOICE = "ko-KR-InJoonNeural"  # 남성 해설자(릴리스 「김민준 · AI 기술 해설가」)
@@ -18,10 +18,17 @@ def _plain(p: dict) -> str:
 
 
 def _edge(text: str, out: Path):
-    import edge_tts
+    import edge_tts, edge_tts.communicate as cm
+    # 2026-10 MS가 옛 주소(speech.platform.bing.com)를 403으로 막음 → Edge 155와 같은 새 주소(edge-tts PR #491). 새 버전이 나오면 지워도 됨
+    cm.WSS_URL = "wss://api.msedgeservices.com/tts/cognitiveservices/websocket/v1?Ocp-Apim-Subscription-Key=" + edge_tts.constants.TRUSTED_CLIENT_TOKEN
     part = out.with_suffix(".part")
     try:
-        asyncio.run(edge_tts.Communicate(text, VOICE).save(str(part)))
+        for k in range(4):  # 429(잠깐 너무 잦음)는 쉬었다가 다시
+            try:
+                asyncio.run(edge_tts.Communicate(text, VOICE).save(str(part))); break
+            except Exception as e:
+                if "429" not in str(e) or k == 3: raise
+                time.sleep(3 * (k + 1))
         if part.stat().st_size == 0: raise RuntimeError("빈 음성")
         part.replace(out)
     finally:

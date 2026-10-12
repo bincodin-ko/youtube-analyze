@@ -482,7 +482,8 @@ def sc_narrow_modals(pg, ex):  # 작은 창(1000px 미만은 확장 탭이 탭 �
     pg.screenshot(path=str(SHOTS / "narrow_ppt.png"))
 
 
-ONLINE = "--online" in sys.argv  # 실제 유튜브 접속이 필요한 시험(인터넷 상태에 따라 실패할 수 있어 기본에서 뺌)
+ONLINE = "--online" in sys.argv
+APP = "--app" in sys.argv  # 실제 앱 창(WebView2) 검사  # 실제 유튜브 접속이 필요한 시험(인터넷 상태에 따라 실패할 수 있어 기본에서 뺌)
 
 SCENARIOS = [
     ("home", "/", 1440, False, sc_home),
@@ -585,11 +586,26 @@ def main():
             nonlocal srv
             srv, base = start_server()
             run_ui(base)
-            def storage():  # F: 앱(pywebview)을 다시 켜도 ☆·크게 보기 등 localStorage 유지 — app.pyw 옵션 확인
-                # ponytail: 정적 검사만. 숨긴 창 2번 띄우는 실제 확인은 WebView2가 불안정해 NOTSOLUTION A로 보류(verify/webview_storage.py)
+            def storage():  # F: 앱(pywebview)을 다시 켜도 ☆·크게 보기 등 localStorage 유지 — app.pyw 옵션 확인(실제 창 확인은 --app)
                 src = (ROOT / "app.pyw").read_text(encoding="utf-8")
                 assert "private_mode=False" in src and 'storage_path=str(ROOT / "data" / "webview")' in src, "app.pyw가 사생활 모드(재시작 때 설정 삭제)"
             step("desktop:storage", storage)
+            if APP and WIN:  # --app: 실제 앱과 같은 WebView2 창을 두 번 띄워 스타일 창·PPT 창·재시작 후 ☆ 유지 확인(보이는 창, 마우스·키보드 안 씀)
+                def app_window():
+                    st, stop = V / "webview-app", V / "app.stop"
+                    shutil.rmtree(st, ignore_errors=True); stop.unlink(missing_ok=True)
+                    for phase in ("1", "2"):
+                        w = subprocess.Popen([sys.executable, str(ROOT / "verify" / "app_window.py"), base + "/note/FlKHoxHe2O0-1791460989", str(st), str(stop)])
+                        try:
+                            for _ in range(40):
+                                try: urllib.request.urlopen("http://127.0.0.1:9333/json/version", timeout=1); break
+                                except OSError: time.sleep(1)
+                            r = subprocess.run([sys.executable, str(ROOT / "verify" / "app_check.py"), phase, str(SHOTS / "app")], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
+                            assert r.returncode == 0, (r.stdout + r.stderr)[-400:]
+                        finally:
+                            stop.touch(); w.wait(30); stop.unlink(missing_ok=True)  # 우리가 띄운 창만 닫음
+                        time.sleep(2)
+                step("app:window", app_window)
         step("server+ui", go)
     if srv:
         srv.terminate(); srv.wait(10)  # 시작한 PID만

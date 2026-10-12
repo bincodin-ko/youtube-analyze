@@ -4,6 +4,11 @@
 
 
 
+## 2026-10-13 사용자 확인 없애기: 실제 앱 창 검사·Edge 음성 복구
+- 무엇: verify `--app` 추가 — 앱(app.pyw)과 같은 옵션의 WebView2 창을 두 번 띄워 CDP로 스타일 창·PPT 창·앱 재시작 후 ☆ 유지까지 확인(verify/app_window.py·app_check.py). Edge 음성 403은 MS 새 주소(api.msedgeservices.com, edge-tts PR #491)로 우회 + 429는 쉬었다 재시도 → 실제 mp3 생성 확인.
+- 왜: "내가 확인할 거 없게 만들어야지" — 사용자에게 넘긴 확인을 직접 함. 전역 Stop 훅 no_user_check.py도 추가(사용자 확인 요청 문장을 막음).
+- 확인: verify --app 43/43, Edge 음성 engine=edge mp3 2개.
+
 ## 2026-10-13 e2e 버그 조사(ai-qa)로 찾은 버그 3개 고침
 - 확장 리포트를 보다 「요약」으로 가도 주소에 ?ext=가 남아 새로고침하면 확장 탭이 열림 → 요약으로 가면 지움(재현 테스트 ai-qa/tests/youtube-analyze/bug-ext-url-summary.e2e.ts 실패→통과)
 - 없는 키(?ext=zzz)로 들어오면 만들 수 없는 「만들기」가 뜸 → 마인드맵으로(bug-ext-url-invalid.e2e.ts 실패→통과)
