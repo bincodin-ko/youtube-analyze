@@ -1,5 +1,5 @@
 // "확장 리포트 추가" 창(릴리스 구성): 추천(☆가 있으면 「즐겨찾기」로 바뀜) · 나만의 템플릿 · 더 깊이 이해하기 · 시각자료 · 이해 점검하기 · 그 외(접기).
-// 같은 카드가 여러 칸에 나올 수 있고(릴리스와 같음) 선택은 키 기준. 이미 만든 것은 흐리게+못 누름. 영상 노트는 「중요 인용구」가 미리 선택.
+// 같은 카드가 여러 칸에 나올 수 있고(릴리스와 같음) 선택은 키 기준. 이미 만든 것은 흐리게+못 누름. 미리 선택된 카드는 없다.
 import { useEffect, useState } from 'react'
 import { ChevronDown, Pencil, Plus, Settings, Star, Trash2, X } from 'lucide-react'
 import type { Tpls } from './Expand'
@@ -19,7 +19,7 @@ const SECTIONS: [string, string[]][] = [
 export default function ExpandModal({ tpls, made, youtube, article, onClose, onAdd, onChanged }: {
   tpls: Tpls; made: Set<string>; youtube: boolean; article: boolean; onClose: () => void; onAdd: (keys: string[]) => void; onChanged: () => void
 }) {
-  const [sel, setSel] = useState<string[]>(() => (!article && !made.has('quote') ? ['quote'] : []))
+  const [sel, setSel] = useState<string[]>([]) // 미리 선택 없음(사용자 요청 2026-10-13)
   const [star, setStar] = useState(lsGet)
   const [manage, setManage] = useState(false)
   const [more, setMore] = useState(true)

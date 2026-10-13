@@ -350,8 +350,9 @@ def sc_add_modal(pg, ex):  # G: 칸 구성·기본 선택·이미 만든 것 흐
     for sec in ("추천", "더 깊이 이해하기", "시각자료", "이해 점검하기"):
         ex(dlg.locator(f"[data-sec='{sec}']")).to_have_count(1)
     ex(dlg.get_by_text("나만의 템플릿")).to_be_visible()
-    ex(dlg.locator("[data-tpl='quote']").first).to_have_attribute("aria-pressed", "true")  # 영상 노트: 중요 인용구 미리 선택
-    ex(dlg.get_by_role("button", name="1개 추가")).to_be_visible()
+    ex(dlg.locator("[aria-pressed='true'][data-tpl]")).to_have_count(0)  # 미리 선택된 카드 없음(사용자 요청)
+    ex(dlg.get_by_role("button", name="추가", exact=True)).to_be_disabled()
+    dlg.locator("[data-tpl='quote']").first.click(); ex(dlg.get_by_role("button", name="1개 추가")).to_be_visible()
     ex(dlg.locator("[data-tpl='infographic']").first).to_be_disabled()  # 시드에 이미 있음
     dlg.locator("[data-tpl='quote']").first.click(); ex(dlg.get_by_role("button", name="추가", exact=True)).to_be_disabled()
     dlg.get_by_role("button", name="퀴즈 즐겨찾기").first.click()
@@ -367,7 +368,7 @@ def sc_info_style(pg, ex):  # A: 인포그래픽 스타일 선택 → 만들기 
     seed = json.loads((DATA / "media" / VIDEO / "ext_infographic.json").read_text(encoding="utf-8"))
     pg.route("**/api/notes/*/ext/infographic", lambda r: (sent.append(r.request.post_data_json), r.fulfill(json={**seed, "style": "handwriting"})))
     dlg = _open_add(pg)
-    dlg.locator("[data-tpl='quote']").first.click(); dlg.locator("[data-tpl='infographic']").first.click(); dlg.get_by_role("button", name="1개 추가").click()
+    dlg.locator("[data-tpl='infographic']").first.click(); dlg.get_by_role("button", name="1개 추가").click()
     sp = pg.get_by_role("dialog", name="인포그래픽 스타일 선택")
     ex(sp.get_by_role("radio")).to_have_count(6)
     ex(sp.get_by_role("radio", name="원페이저 한 페이지 요약")).to_have_attribute("aria-checked", "true")
@@ -377,7 +378,6 @@ def sc_info_style(pg, ex):  # A: 인포그래픽 스타일 선택 → 만들기 
     sp.get_by_role("button", name="취소").click(); ex(sp).to_have_count(0)
     assert not sent, "취소했는데 만들기 요청이 나감"
     _open_add(pg).locator("[data-tpl='infographic']").first.click()
-    pg.get_by_role("dialog", name="확장 리포트 추가").locator("[data-tpl='quote']").first.click()
     pg.get_by_role("dialog", name="확장 리포트 추가").get_by_role("button", name="1개 추가").click()
     sp.get_by_role("radio", name="손글씨 스케치/손그림").click()
     sp.get_by_role("button", name="고급 설정").click(); sp.get_by_label("추가 프롬프트 (선택사항)").fill("밝은 색상 사용")
@@ -390,7 +390,7 @@ def sc_toon_style(pg, ex):  # B: 만화 스타일 선택(6종·견본 그림) �
     sent = []
     pg.route("**/api/notes/*/cartoon", lambda r: (sent.append(r.request.post_data_json), r.fulfill(json={"busy": False})) if r.request.method == "POST" else r.continue_())
     dlg = _open_add(pg)
-    dlg.locator("[data-tpl='quote']").first.click(); dlg.locator("[data-tpl='cartoon']").first.click(); dlg.get_by_role("button", name="1개 추가").click()
+    dlg.locator("[data-tpl='cartoon']").first.click(); dlg.get_by_role("button", name="1개 추가").click()
     sp = pg.get_by_role("dialog", name="만화 스타일 선택")
     ex(sp.get_by_role("radio")).to_have_count(6)
     for k, label in (("webtoon", "웹툰 한국 웹툰"), ("chibi", "치비 귀여운 SD 캐릭터")):
@@ -472,7 +472,7 @@ def sc_script_table(pg, ex):  # 스크립트(AI 없이 실제 생성) + 표 그�
     pg.goto(pg.url.split("?")[0] + "?ext=stock")
     ex(pg.locator("table[data-table] th")).to_have_count(3); ex(pg.locator("table[data-table] tbody tr")).to_have_count(2)
     dlg = _open_add(pg)
-    dlg.locator("[data-tpl='quote']").first.click(); dlg.locator("[data-tpl='script']").first.click(); dlg.get_by_role("button", name="1개 추가").click()
+    dlg.locator("[data-tpl='script']").first.click(); dlg.get_by_role("button", name="1개 추가").click()
     ex(pg.get_by_role("heading", name="00:00")).to_be_visible()
 DECK = {"kind": "ppt", "title": "시험 덱", "style": "cobalt", "accent": "", "slides": [
     {"layout": "cover", "title": "표지 제목", "subtitle": "부제", "points": [], "stat": "", "quote": "", "ref": None},
@@ -483,7 +483,7 @@ def sc_ppt(pg, ex):  # J: 만들기 창(9종·2~30장·지시) → 요청 → �
     pg.route("**/api/notes/*/ppt", lambda r: (sent.append(r.request.post_data_json), r.fulfill(json=DECK)) if r.request.method == "POST" else r.continue_())
     pg.route("**/api/notes/*/ppt/revise", lambda r: (sent.append(r.request.post_data_json), r.fulfill(json={**DECK, "slides": [DECK["slides"][0], {**DECK["slides"][1], "title": "고친 비교"}, DECK["slides"][2]]})))
     dlg = _open_add(pg)
-    dlg.locator("[data-tpl='quote']").first.click(); dlg.locator("[data-tpl='ppt']").first.click(); dlg.get_by_role("button", name="1개 추가").click()
+    dlg.locator("[data-tpl='ppt']").first.click(); dlg.get_by_role("button", name="1개 추가").click()
     sp = pg.get_by_role("dialog", name="PPT 만들기")
     ex(sp.get_by_role("radio")).to_have_count(9)
     ex(sp.locator("[data-count]")).to_have_text("5")
@@ -562,7 +562,7 @@ def sc_narrow_modals(pg, ex):  # 작은 창(1000px 미만은 확장 탭이 탭 �
     pg.get_by_role("button", name="확장 리포트 목록").click(); pg.get_by_role("button", name="확장 리포트 추가").click()
     dlg = pg.get_by_role("dialog", name="확장 리포트 추가"); _no_hscroll(pg, dlg, "추가 창")
     pg.screenshot(path=str(SHOTS / "narrow_add.png"))
-    dlg.locator("[data-tpl='quote']").first.click(); dlg.locator("[data-tpl='infographic']").first.click(); dlg.locator("[data-tpl='ppt']").first.click()
+    dlg.locator("[data-tpl='infographic']").first.click(); dlg.locator("[data-tpl='ppt']").first.click()
     dlg.get_by_role("button", name="2개 추가").click()
     sp = pg.get_by_role("dialog", name="인포그래픽 스타일 선택"); _no_hscroll(pg, sp, "스타일 창")
     ex(sp.get_by_role("button", name="만들기")).to_be_in_viewport()
