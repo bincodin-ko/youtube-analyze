@@ -31,6 +31,8 @@ def init():
             c.execute("ALTER TABLE notes ADD COLUMN collection_id INTEGER")  # 기존 노트는 NULL(컬렉션 없음)
         if "kind" not in [r[1] for r in c.execute("PRAGMA table_info(notes)")]:
             c.execute("ALTER TABLE notes ADD COLUMN kind TEXT DEFAULT 'video'")  # video | article | pdf | audio | localvideo. 기존 노트는 video
+        if "deleted_at" not in [r[1] for r in c.execute("PRAGMA table_info(notes)")]:
+            c.execute("ALTER TABLE notes ADD COLUMN deleted_at TEXT")  # 휴지통(릴리스처럼). NULL이면 살아 있는 노트
         # 검색: trigram FTS. 리포트·대본 JSON에서 글자 값만 뽑아 넣음(장면 파일 이름·번호 id 는 뺌). 동기화는 트리거가 맡음
         # 예전 색인(파일 이름까지 넣던 것)이면 지우고 다시 만든다. 노트 자체는 그대로
         old = c.execute("SELECT sql FROM sqlite_master WHERE name='notes_fts_insert'").fetchone()
@@ -85,7 +87,7 @@ SUMMARY = "id,title,channel,thumbnail,duration,created_at,status,step,collection
 
 
 def list_all(collection_id=None):
-    w, a = ("WHERE collection_id=?", (collection_id,)) if collection_id else ("", ())
+    w, a = ("WHERE collection_id=? AND deleted_at IS NULL", (collection_id,)) if collection_id else ("WHERE deleted_at IS NULL", ())
     # 컬렉션 안에서는 넣은 순서(재생목록 순서), 전체는 최신순
     order = "rowid" if collection_id else "created_at DESC"
     with _con() as c:
@@ -96,7 +98,7 @@ def collections():
     with _con() as c:
         return [dict(r) for r in c.execute(
             "SELECT c.id, c.name, count(n.id) AS count FROM collections c "
-            "LEFT JOIN notes n ON n.collection_id=c.id GROUP BY c.id ORDER BY c.id")]
+            "LEFT JOIN notes n ON n.collection_id=c.id AND n.deleted_at IS NULL GROUP BY c.id ORDER BY c.id")]
 
 
 def add_collection(name, created_at):
@@ -122,8 +124,8 @@ def search(q, limit=50):
         where, a = " OR ".join(f"f.{k} LIKE ? ESCAPE '!'" for k in ("title", "report", "transcript")), (like,) * 3
     with _con() as c:
         rows = c.execute(f"SELECT n.id,n.title,n.channel,n.thumbnail,n.created_at,f.title AS t,f.report AS r,"
-                         f"f.transcript AS s FROM notes_fts f JOIN notes n ON n.rowid=f.rowid WHERE {where} "
-                         f"ORDER BY n.created_at DESC LIMIT {int(limit)}", a).fetchall()
+                         f"f.transcript AS s FROM notes_fts f JOIN notes n ON n.rowid=f.rowid WHERE ({where}) "
+                         f"AND n.deleted_at IS NULL ORDER BY n.created_at DESC LIMIT {int(limit)}", a).fetchall()
     out = []
     for r in rows:
         d = dict(r)
@@ -136,6 +138,17 @@ def search(q, limit=50):
             d.pop(k)
         out.append(d)
     return out
+
+
+def trash(nid, at):
+    """휴지통으로(at=None이면 복원)."""
+    with _con() as c:
+        c.execute("UPDATE notes SET deleted_at=? WHERE id=?", (at, nid))
+
+
+def trashed():
+    with _con() as c:
+        return [dict(r) for r in c.execute(f"SELECT {SUMMARY},deleted_at FROM notes WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC")]
 
 
 def delete_note(nid):

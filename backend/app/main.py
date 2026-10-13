@@ -419,14 +419,81 @@ def make_translation(nid: str):
 
 # ---- 삭제·컬렉션 관리 ----
 @app.delete("/api/notes/{nid}")
-def delete_note(nid: str):
+def delete_note(nid: str, forever: bool = False):
+    """기본은 휴지통으로(릴리스처럼). forever=1이면 영구 삭제(휴지통에서만)."""
     n = db.get(nid) or _404()
     if n["status"] == "processing":
         raise HTTPException(409, "처리 중인 노트는 지울 수 없어요")
+    if not forever:
+        db.trash(nid, _now()); return {"ok": True, "trash": True}
+    if not n.get("deleted_at"):
+        raise HTTPException(400, "휴지통에 있는 노트만 영구 삭제할 수 있어요")
     db.delete_note(nid)
     shutil.rmtree(MEDIA / nid, ignore_errors=True)
     shutil.rmtree(UP / nid, ignore_errors=True)  # 내 파일 노트: 올린 원본도 지움
     return {"ok": True}
+
+
+@app.get("/api/trash")
+def trash_list():
+    return db.trashed()
+
+
+@app.post("/api/notes/{nid}/restore")
+def restore_note(nid: str):
+    db.get(nid) or _404()
+    db.trash(nid, None); return {"ok": True}
+
+
+# ---- 구독(릴리스 「구독」): 채널을 등록하면 새 영상 목록만 보여 주고, 노트는 사용자가 누를 때 만든다(AI 사용량을 사용자가 정함) ----
+SUBS = DATA / "subs.json"
+_subs_cache: dict = {}  # url → (시각, 새 영상 목록). ponytail: 메모리 30분 캐시, 앱 재시작 시 다시 받음
+
+
+def _subs() -> list:
+    try: return json.loads(SUBS.read_text(encoding="utf-8"))
+    except Exception: return []
+
+
+@app.get("/api/subs")
+def subs_list():
+    return _subs()
+
+
+@app.post("/api/subs")
+def subs_add(body: Url):
+    url = body.url.strip()
+    if not re.search(r"youtube\.com/(@[^/?#]+|channel/[^/?#]+|c/[^/?#]+)", url):
+        raise HTTPException(400, "유튜브 채널 링크를 넣어 주세요(예: https://www.youtube.com/@채널이름)")
+    url = url.split("?")[0].rstrip("/").removesuffix("/videos")
+    subs = _subs()
+    if any(x["url"] == url for x in subs): return subs
+    try: info = transcript.playlist(url, 5)
+    except Exception as e: raise HTTPException(400, f"채널을 불러오지 못했어요: {e}")
+    subs.append({"url": url, "name": info["title"], "added_at": _now()})
+    SUBS.write_text(json.dumps(subs, ensure_ascii=False, indent=1), encoding="utf-8")
+    _subs_cache[url] = (time.time(), info["entries"])
+    return subs
+
+
+@app.delete("/api/subs")
+def subs_del(url: str):
+    SUBS.write_text(json.dumps([x for x in _subs() if x["url"] != url], ensure_ascii=False, indent=1), encoding="utf-8")
+    _subs_cache.pop(url, None); return _subs()
+
+
+@app.get("/api/subs/videos")
+def subs_videos():
+    """구독 채널마다 최신 5개 중 아직 노트가 없는 영상."""
+    have = {n["id"][:11] for n in db.list_all()} | {n["id"][:11] for n in db.trashed()}
+    out = []
+    for x in _subs():
+        t, es = _subs_cache.get(x["url"], (0, None))
+        if es is None or time.time() - t > 1800:
+            try: es = transcript.playlist(x["url"], 5)["entries"]; _subs_cache[x["url"]] = (time.time(), es)
+            except Exception: es = es or []
+        out += [{**e, "channel": x["name"]} for e in es if e["id"] not in have]
+    return out
 
 
 @app.put("/api/collections/{cid}")

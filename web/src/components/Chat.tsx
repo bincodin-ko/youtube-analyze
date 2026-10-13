@@ -136,7 +136,7 @@ export default function Chat({ note, seek, quote }: { note: Note; seek: (t: numb
         ))}
       </div>
       <div className="mx-4 mb-2 rounded-xl border border-line p-3 shrink-0">
-        <textarea ref={ta} value={q} rows={2} disabled={!ready} onChange={(e) => setQ(e.target.value)} placeholder="무엇이든 물어보세요"
+        <textarea ref={ta} value={q} rows={2} disabled={!ready} onChange={(e) => setQ(e.target.value)} placeholder="무엇이든 요청하세요 (질문, 작성, 수정)"
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(q) } }}
           className="w-full resize-none bg-transparent text-fg outline-none text-[15px] leading-[1.6] placeholder:text-muted" />
         <div className="flex items-center gap-1 mt-1">

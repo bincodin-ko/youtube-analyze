@@ -1,4 +1,6 @@
 import { Route, Routes } from 'react-router-dom'
+import Trash from './pages/Trash'
+import Subs from './pages/Subs'
 import Home from './pages/Home'
 import New from './pages/New'
 import Library, { CollectionPage, SearchPage } from './pages/Library'
@@ -11,6 +13,8 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/library" element={<Library />} />
+      <Route path="/trash" element={<Trash />} />
+      <Route path="/subscriptions" element={<Subs />} />
       <Route path="/collection/:id" element={<CollectionPage />} />
       <Route path="/search" element={<SearchPage />} />
       <Route path="/new" element={<New />} />

@@ -194,10 +194,11 @@ function ArticlePanel({ note, hl, open, setOpen }: { note: Note; hl: number | nu
   const d = note.upload_date.split('-').map(Number)
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <div className="px-4 py-3 shrink-0 leading-tight">
-        <p className="text-[14px] font-semibold truncate">{note.channel}</p>
-        {note.upload_date && <p className="text-[13px] text-muted mt-1">{d[0]}. {d[1]}. {d[2]}.</p>}
-        {note.kind === 'article' && <a href={note.url} target="_blank" rel="noreferrer" className="mt-2 flex items-center gap-1.5 text-[13px] text-link hover:underline"><ExternalLink size={14} className="shrink-0" /><span className="truncate">원문 링크 열기</span></a>}
+      {/* 릴리스처럼 제목을 가운데 크게 + 바깥 링크 아이콘. 출처·날짜는 제목 아래 작게(마우스를 올리면 전체 제목) */}
+      <div data-src-head="" className="px-5 py-6 shrink-0 text-center">
+        <h2 title={note.title} className="inline text-[19px] font-bold leading-snug break-words line-clamp-3">{note.title}</h2>
+        {note.kind === 'article' && <a href={note.url} target="_blank" rel="noreferrer" aria-label="원문 링크 열기" title="원문 링크 열기" className="inline-grid align-middle ml-1.5 place-items-center size-6 rounded text-muted hover:text-fg"><ExternalLink size={15} /></a>}
+        <p className="mt-1.5 text-[12px] text-muted truncate">{note.channel}{note.upload_date && ` · ${d[0]}. ${d[1]}. ${d[2]}.`}</p>
       </div>
       <div className="flex flex-col min-h-0 flex-1 border-t border-line">
         <button onClick={() => setOpen(!open)} className="flex items-center justify-between h-[43px] px-4 text-[14px] font-semibold shrink-0">

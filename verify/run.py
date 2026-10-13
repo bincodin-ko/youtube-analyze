@@ -119,7 +119,50 @@ def start_server():
 
 
 # ---- 5. 화면 시나리오: 여기 목록에 한 줄 추가하면 끝. (이름, 주소, 폭, 다크, 점검 함수) ----
-def sc_home(pg, ex): ex(pg.get_by_text("최근 노트")).to_be_visible()
+def sc_home(pg, ex):  # 릴리스 홈 배치: 위 줄 「새로 추가하기」, 라이브러리 카드 줄 + 전체 보기, 구독 칸, 사이드바 노트 목록·휴지통·구독
+    ex(pg.get_by_role("heading", name="라이브러리")).to_be_visible()
+    ex(pg.get_by_role("link", name="전체 보기")).to_have_attribute("href", "/library")
+    ex(pg.locator("[data-card]").first).to_be_visible()
+    assert pg.locator("[data-card]").count() == 3, pg.locator("[data-card]").count()
+    ex(pg.locator("[data-card]").nth(1).get_by_text("유튜브")).to_be_visible(); ex(pg.locator("[data-card]").first.get_by_text("웹사이트")).to_be_visible()
+    w = pg.locator("[data-card]").first.bounding_box()["width"]; assert 200 <= w <= 214, w  # 릴리스처럼 212px 고정폭
+    ex(pg.locator("[data-subs]")).to_be_visible(); ex(pg.locator("[data-subs]").get_by_text("아직 구독한 채널이 없어요")).to_be_visible()
+    ex(pg.get_by_role("button", name="새로 추가하기").first).to_be_visible()
+    ex(pg.locator("[data-lib-tree] a[href^='/note/']")).to_have_count(3)
+    ex(pg.locator("[data-lib-tree]").get_by_role("link", name="휴지통")).to_be_visible()
+    ex(pg.get_by_role("link", name="구독", exact=True)).to_be_visible()
+    pg.get_by_role("button", name="라이브러리 접기").click(); ex(pg.locator("[data-lib-tree]")).to_have_count(0)
+    pg.reload(); ex(pg.get_by_role("button", name="라이브러리 펼치기")).to_be_visible()  # 접힘 상태 유지
+    pg.get_by_role("button", name="라이브러리 펼치기").click()
+
+
+def sc_trash(pg, ex):  # 삭제 → 휴지통 → 복원(시험용 복사 데이터)
+    nid = "FlKHoxHe2O0-1791460989"
+    card = pg.locator(f"li:has(a[href='/note/{nid}'])")
+    card.get_by_title("더보기").click(); card.get_by_role("button", name="삭제").click()
+    d = pg.get_by_role("dialog"); ex(d.get_by_text("휴지통에서 다시 꺼낼 수 있어요", exact=False)).to_be_visible()
+    d.get_by_role("button", name="휴지통으로").click()
+    ex(pg.locator(f"main a[href='/note/{nid}']")).to_have_count(0)
+    pg.locator("[data-lib-tree]").get_by_role("link", name="휴지통").click()
+    row = pg.locator("[data-trash-row]", has=pg.locator(f"a[href='/note/{nid}']")); ex(row).to_be_visible()
+    row.get_by_role("button", name="영구 삭제").click(); ex(pg.get_by_role("dialog", name="영구 삭제 확인")).to_be_visible()
+    pg.keyboard.press("Escape"); ex(pg.get_by_role("dialog", name="영구 삭제 확인")).to_have_count(0)
+    row.get_by_role("button", name="복원").click(); ex(pg.locator("[data-trash-row]")).to_have_count(0)
+    pg.goto(pg.url.split("/trash")[0] + "/library"); ex(pg.locator(f"main a[href='/note/{nid}']").first).to_be_visible()
+
+
+def sc_subs(pg, ex):  # 구독: 채널 추가 → 칩 + 새 영상 목록(유튜브 응답은 가짜로)
+    state = {"subs": []}
+    pg.route("**/api/subs/videos", lambda r: r.fulfill(json=[{"id": "abcdefghijk", "title": "새 영상 제목", "thumbnail": "", "channel": "테스트채널", "duration": 60}] if state["subs"] else []))
+    def subs(r):
+        if r.request.method == "POST": state["subs"] = [{"url": "https://www.youtube.com/@test", "name": "테스트채널"}]
+        r.fulfill(json=state["subs"])
+    pg.route("**/api/subs", subs)
+    pg.reload()
+    pg.get_by_role("button", name="구독", exact=True).click()
+    pg.get_by_label("채널 링크").fill("https://www.youtube.com/@test"); pg.get_by_role("button", name="추가", exact=True).click()
+    ex(pg.get_by_text("테스트채널").first).to_be_visible(); ex(pg.get_by_text("새 영상 제목")).to_be_visible()
+    ex(pg.get_by_text("새 영상 1개")).to_be_visible()
 def sc_library(pg, ex):
     ex(pg.get_by_text("내 노트", exact=True)).to_be_visible()
     ex(pg.locator(f'a[href*="/note/{VIDEO}"]').first).to_be_visible()
@@ -132,10 +175,17 @@ def sc_new_web(pg, ex):
 def sc_note(pg, ex):
     ex(pg.locator("[data-report] h1").first).to_be_visible()  # 리포트
     ex(pg.get_by_role("button", name="스크립트", exact=True)).to_be_visible()  # 스크립트 패널
-    ex(pg.get_by_placeholder("무엇이든 물어보세요")).to_be_visible()  # 채팅 패널
+    ex(pg.get_by_placeholder("무엇이든 요청하세요 (질문, 작성, 수정)")).to_be_visible()  # 채팅 패널
     # 시드 노트는 terms.json 있음 → 맨 끝에 정확히 한 번 (용어는 따로 불러와서 기다림)
     ex(pg.get_by_role("heading", name="용어 풀이", exact=True)).to_have_count(1 if json.loads((DATA / "media" / VIDEO / "terms.json").read_text(encoding="utf-8")) else 0)
-def sc_article(pg, ex): ex(pg.locator("[data-report] h1").first).to_be_visible()
+def sc_article(pg, ex):
+    ex(pg.locator("[data-report] h1").first).to_be_visible()
+    h = pg.locator("[data-src-head]"); ex(h.locator("h2")).to_be_visible()  # 릴리스: 왼쪽 머리말 = 제목 + 바깥 링크 아이콘
+    ex(h.get_by_role("link", name="원문 링크 열기")).to_have_attribute("target", "_blank")
+    tip = pg.locator("[data-share-tip]").first; tip.scroll_into_view_if_needed(); ex(tip).to_be_visible()  # 공유·내보내기 첫 안내
+    pg.screenshot(path=str(SHOTS / "note_article_tip.png"))
+    tip.get_by_role("button", name="안내 닫기").click(); pg.reload(); pg.locator("[data-report] h1").first.wait_for()
+    ex(pg.locator("[data-share-tip]")).to_have_count(0)
 def sc_mindmap(pg, ex):
     if not (DATA / "media" / VIDEO / "mindmap_normal.md").exists():
         raise SkipCheck("캐시된 mindmap_normal.md 없음")
@@ -143,7 +193,7 @@ def sc_mindmap(pg, ex):
     ex(pg.locator("svg g.markmap-node").first).to_be_visible()
 def sc_narrow_chat(pg, ex):
     pg.get_by_role("button", name="채팅", exact=True).first.click()
-    ex(pg.get_by_placeholder("무엇이든 물어보세요")).to_be_visible()
+    ex(pg.get_by_placeholder("무엇이든 요청하세요 (질문, 작성, 수정)")).to_be_visible()
 YT7 = ["https://www.youtube.com/watch?v=dQw4w9WgXcQ", "https://youtu.be/dQw4w9WgXcQ", "https://youtu.be/dQw4w9WgXcQ?si=abcDEF123",
        "https://www.youtube.com/shorts/dQw4w9WgXcQ", "https://www.youtube.com/live/dQw4w9WgXcQ", "https://m.youtube.com/watch?v=dQw4w9WgXcQ",
        "https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=PLabcdefghijk123&index=2"]
@@ -202,7 +252,7 @@ def sc_big_hold(pg, ex):  # 크게 보기 때만 가운데 꾹 누르기 2배속
     pg.get_by_role("button", name="작게 보기").last.click()
     ex(pg.locator("[data-stage-cover]")).to_have_count(0)
 def sc_space_input(pg, ex):
-    pg.get_by_placeholder("무엇이든 물어보세요").click(); pg.keyboard.down("Space"); pg.wait_for_timeout(600)
+    pg.get_by_placeholder("무엇이든 요청하세요 (질문, 작성, 수정)").click(); pg.keyboard.down("Space"); pg.wait_for_timeout(600)
     ex(pg.locator("[data-stage]")).to_have_attribute("data-fast", "0"); pg.keyboard.up("Space")
     assert not pg.evaluate("window.__vnRate || []"), "입력창 포커스인데 속도가 바뀜"
 
@@ -459,7 +509,7 @@ def sc_summary_bits(pg, ex):  # M
     if t.count():
         name = t.inner_text(); t.hover()
         pg.get_by_label(f"{name} 질문하기").fill("예를 들어줘"); pg.keyboard.press("Enter")
-        ex(pg.get_by_placeholder("무엇이든 물어보세요")).to_have_value(re.compile(re.escape(name)))
+        ex(pg.get_by_placeholder("무엇이든 요청하세요 (질문, 작성, 수정)")).to_have_value(re.compile(re.escape(name)))
 
 
 def _no_hscroll(pg, dlg, what):
@@ -507,6 +557,9 @@ APP = "--app" in sys.argv  # 실제 앱 창(WebView2) 검사  # 실제 유튜브
 SCENARIOS = [
     ("home", "/", 1440, False, sc_home),
     ("library", "/library", 1440, False, sc_library),
+    ("trash", "/library", 1440, False, sc_trash),
+    ("subscriptions", "/subscriptions", 1440, False, sc_subs),
+    ("home_390", "/", 390, False, lambda pg, ex: ex(pg.locator("[data-card]").first).to_be_visible()),
     ("new_youtube", "/new", 1440, False, sc_new_yt),
     ("new_web", "/new", 1440, False, sc_new_web),
     ("note_video", f"/note/{VIDEO}", 1440, False, sc_note),
@@ -560,6 +613,8 @@ def run_ui(base):
                     return r.abort()  # 외부(유튜브 등) 차단 → 결정적
                 if u.path.startswith("/api/") and r.request.method == "PUT" and u.path.endswith(("/feedback/report_default", "/feedback/action")):
                     return r.continue_()  # 👍👎 저장 시험(시험용 복사 데이터에만 씀)
+                if (r.request.method == "DELETE" and re.fullmatch(r"/api/notes/[\w-]+", u.path) and "forever" not in (u.query or "")) or (r.request.method == "POST" and u.path.endswith("/restore")):
+                    return r.continue_()  # 휴지통으로 옮기기·복원(시험용 복사 데이터, 되돌릴 수 있음)
                 if r.request.method == "POST" and u.path.endswith("/ext/script"):
                     return r.continue_()  # 스크립트는 AI 없이 대본을 묶기만 함
                 if u.path.startswith("/api/") and r.request.method != "GET":

@@ -27,6 +27,8 @@ export default function ReportFoot({ id, fkey, fb, onFb, onRedo, busy, text, fil
   const [cols, setCols] = useState<Collection[] | null>(null)
   const [col, setCol] = useState(collectionId ?? null)
   const [copyErr, setCopyErr] = useState(false)
+  const [tip, setTip] = useState(() => { try { return !localStorage.getItem('vn-share-tip') } catch { return false } }) // 처음 한 번만
+  const closeTip = () => { setTip(false); try { localStorage.setItem('vn-share-tip', '1') } catch { /* 저장 못 해도 이번엔 닫힘 */ } }
   useEffect(() => setCol(collectionId ?? null), [collectionId]) // eslint-disable-line react-hooks/set-state-in-effect
   useEffect(() => { if (!ask) return; const k = (e: KeyboardEvent) => { if (e.key === 'Escape') setAsk(false) }; addEventListener('keydown', k); return () => removeEventListener('keydown', k) }, [ask])
   const v = fb[fkey] ?? 0
@@ -46,7 +48,13 @@ export default function ReportFoot({ id, fkey, fb, onFb, onRedo, busy, text, fil
         <button aria-label="좋아요" aria-pressed={v === 1} onClick={() => onFb(fkey, 1)} className={ib}><ThumbsUp size={16} className={v === 1 ? 'fill-fg text-fg' : ''} /></button>
         <button aria-label="별로예요" aria-pressed={v === -1} onClick={() => onFb(fkey, -1)} className={ib}><ThumbsDown size={16} className={v === -1 ? 'fill-fg text-fg' : ''} /></button>
         {onRedo && <button aria-label="다시 만들기" title="다시 만들기" disabled={busy} onClick={() => setAsk(true)} className={ib}><RefreshCw size={16} className={busy ? 'animate-spin' : ''} /></button>}
-        <div className="ml-auto flex items-center gap-0.5 rounded-xl bg-subtle px-1">
+        <div className="relative ml-auto flex items-center gap-0.5 rounded-xl bg-subtle px-1">
+          {tip && <div role="note" data-share-tip="" className="absolute right-0 bottom-[calc(100%+10px)] z-10 w-[min(330px,80vw)] rounded-xl border border-fg bg-bg px-4 py-3 shadow-[0_4px_16px_rgba(0,0,0,.08)]">
+            <p className="text-[14px] font-bold pr-6">공유 &amp; 내보내기 &amp; 복사할 수 있어요!</p>
+            <p className="mt-1 text-[13px] text-soft">링크, Markdown 파일, 복사로 가져갈 수 있어요.</p>
+            <button onClick={closeTip} aria-label="안내 닫기" className="absolute top-2.5 right-2.5 size-6 grid place-items-center rounded text-muted hover:text-fg">×</button>
+            <span className="absolute -bottom-[7px] right-8 size-3 rotate-45 border-r border-b border-fg bg-bg" />
+          </div>}
           <ShareMenu id={id} ready className={ib} />
           <button aria-label="다운로드" title="Markdown으로 저장" onClick={download} className={ib}><Download size={16} /></button>
           <button aria-label="복사" title="복사" onClick={copy} className={ib}>{copied ? <Check size={16} /> : <Copy size={16} />}</button>

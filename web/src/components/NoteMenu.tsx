@@ -11,12 +11,12 @@ export function ConfirmNote({ id, title, onCancel, onDone }: { id: string; title
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-4" onClick={onCancel}>
       <div role="dialog" aria-modal className="w-full max-w-[400px] rounded-2xl bg-bg border border-line p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-[17px] font-bold">노트를 삭제할까요?</h3>
-        <p className="mt-2 text-[14px] text-soft leading-relaxed break-words line-clamp-3">「{title}」과 장면 이미지가 모두 지워지고 되돌릴 수 없어요.</p>
+        <h3 className="text-[17px] font-bold">노트를 휴지통으로 옮길까요?</h3>
+        <p className="mt-2 text-[14px] text-soft leading-relaxed break-words line-clamp-3">「{title}」은 휴지통에서 다시 꺼낼 수 있어요.</p>
         {err && <p className="mt-2 text-[13px] text-red-500">{err}</p>}
         <div className="mt-5 flex justify-end gap-2">
           <button onClick={onCancel} className="h-9 px-4 rounded-full border border-line text-[14px]">취소</button>
-          <button disabled={busy} onClick={go} className="h-9 px-4 rounded-full bg-red-600 text-white text-[14px] font-semibold disabled:opacity-60">{busy ? '삭제 중…' : '삭제'}</button>
+          <button disabled={busy} onClick={go} className="h-9 px-4 rounded-full bg-red-600 text-white text-[14px] font-semibold disabled:opacity-60">{busy ? '옮기는 중…' : '휴지통으로'}</button>
         </div>
       </div>
     </div>

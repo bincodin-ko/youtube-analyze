@@ -84,3 +84,14 @@ export const translateNote = (id: string) => j<Trans>(`/api/notes/${id}/translat
 export const deleteNote = (id: string) => j(`/api/notes/${id}`, { method: 'DELETE' })
 export const renameCollection = (id: number, name: string) => j(`/api/collections/${id}`, send('PUT', { name }))
 export const deleteCollection = (id: number) => j(`/api/collections/${id}`, { method: 'DELETE' })
+
+// 휴지통·구독(릴리스 홈 배치)
+export const trashList = () => j<(NoteSummary & { deleted_at: string })[]>('/api/trash')
+export const restoreNote = (id: string) => j(`/api/notes/${id}/restore`, { method: 'POST' })
+export const deleteForever = (id: string) => j(`/api/notes/${id}?forever=1`, { method: 'DELETE' })
+export type Sub = { url: string; name: string }
+export type SubVideo = { id: string; title: string; thumbnail: string; channel: string; duration: number | null }
+export const listSubs = () => j<Sub[]>('/api/subs')
+export const addSub = (url: string) => j<Sub[]>('/api/subs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) })
+export const delSub = (url: string) => j<Sub[]>(`/api/subs?url=${encodeURIComponent(url)}`, { method: 'DELETE' })
+export const subVideos = () => j<SubVideo[]>('/api/subs/videos')

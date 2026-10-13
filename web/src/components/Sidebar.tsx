@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { BookOpen, Folder, Highlighter, House, MoreHorizontal, PanelLeft, Pencil, Plus, Search, Trash2 } from 'lucide-react'
-import { collectionsChanged, createCollection, deleteCollection, listCollections, renameCollection, type Collection } from '../api'
+import { BookOpen, ChevronDown, Folder, Highlighter, House, MoreHorizontal, PanelLeft, Pencil, Plus, Rss, Search, Trash2 } from 'lucide-react'
+import { collectionsChanged, createCollection, deleteCollection, listCollections, listNotes, renameCollection, type Collection, type NoteSummary } from '../api'
+import { TypeIcon } from '../pages/Home'
 import { Logo, ThemeButton } from './ui'
 import Backdrop from './Backdrop'
 
@@ -24,8 +25,8 @@ export default function Sidebar() {
       </div>
       <nav className="px-3 mt-6 flex flex-col gap-[3px]">
         <NavLink to="/" end className={item}><House size={19} strokeWidth={1.6} />홈</NavLink>
-        <NavLink to="/library" className={item}><BookOpen size={19} strokeWidth={1.6} />라이브러리</NavLink>
-        <Collections />
+        <LibraryTree />
+        <NavLink to="/subscriptions" className={item}><Rss size={19} strokeWidth={1.6} />구독</NavLink>
         <NavLink to="/highlights" className={item}><Highlighter size={19} strokeWidth={1.6} />하이라이트</NavLink>
       </nav>
       <div className="mt-auto border-t border-line px-3 py-3">
@@ -45,6 +46,33 @@ export function MobileBar() {
         <ThemeButton />
       </div>
     </header>
+  )
+}
+
+// 라이브러리(릴리스처럼 ⌄로 접기): 최근 노트 5개 · 컬렉션 · 휴지통. 접힘 상태는 이 브라우저에 기억
+function LibraryTree() {
+  const [open, setOpen] = useState(() => { try { return localStorage.getItem('vn-lib-open') !== '0' } catch { return true } })
+  const [notes, setNotes] = useState<NoteSummary[]>([])
+  const loc = useLocation()
+  useEffect(() => {
+    const load = () => listNotes().then((n) => setNotes(n.slice(0, 5))).catch(() => {})
+    load(); window.addEventListener('collections', load)
+    return () => window.removeEventListener('collections', load)
+  }, [loc.pathname])
+  const toggle = () => { setOpen(!open); try { localStorage.setItem('vn-lib-open', open ? '0' : '1') } catch { /* 이번 화면만 */ } }
+  const sub = ({ isActive }: { isActive: boolean }) => `flex items-center gap-2 h-[28px] pl-7 pr-1 rounded-md text-[13px] ${isActive ? 'bg-bg font-semibold' : 'text-soft hover:text-fg'}`
+  return (
+    <>
+      <div className="flex items-center">
+        <NavLink to="/library" className={() => item() + ' flex-1'}><BookOpen size={19} strokeWidth={1.6} />라이브러리</NavLink>
+        <button onClick={toggle} aria-expanded={open} aria-label={open ? '라이브러리 접기' : '라이브러리 펼치기'} className="grid place-items-center size-7 rounded text-muted hover:text-fg"><ChevronDown size={15} className={open ? '' : '-rotate-90'} /></button>
+      </div>
+      {open && <div data-lib-tree="" className="flex flex-col gap-[1px]">
+        {notes.map((n) => <NavLink key={n.id} to={`/note/${n.id}`} className={sub} title={n.title}><TypeIcon kind={n.kind} size={13} /><span className="truncate">{n.title}</span></NavLink>)}
+        <Collections />
+        <NavLink to="/trash" className={sub}><Trash2 size={13} strokeWidth={1.6} className="shrink-0" />휴지통</NavLink>
+      </div>}
+    </>
   )
 }
 
