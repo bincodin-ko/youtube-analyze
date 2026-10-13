@@ -168,6 +168,18 @@ def sc_subs(pg, ex):  # 구독: 채널 추가 → 칩 + 새 영상 목록(유튜
 def sc_library(pg, ex):
     ex(pg.get_by_text("내 노트", exact=True)).to_be_visible()
     ex(pg.locator(f'a[href*="/note/{VIDEO}"]').first).to_be_visible()
+def sc_lib_zoom(pg, ex):  # 카드 크기 축소·확대: 작게 할수록 한 줄 칸 수 증가, 새로고침 뒤 유지, Ctrl+휠
+    g = pg.locator("[data-note-grid]")
+    def ncol(): return pg.evaluate("getComputedStyle(document.querySelector('[data-note-grid]')).gridTemplateColumns.split(' ').length")
+    ex(g).to_have_attribute("data-note-grid", "2"); c2 = ncol(); pg.get_by_role("button", name="카드 작게").click(); pg.get_by_role("button", name="카드 작게").click()
+    ex(g).to_have_attribute("data-note-grid", "0"); c0 = ncol(); ex(pg.get_by_role("button", name="카드 작게")).to_be_disabled()
+    pg.screenshot(path=str(SHOTS / "library_zoom_small.png"))
+    pg.reload(); ex(g).to_have_attribute("data-note-grid", "0")
+    b = g.bounding_box(); pg.mouse.move(b["x"] + 50, b["y"] + 50); pg.keyboard.down("Control")
+    for _ in range(4): pg.mouse.wheel(0, -100); pg.wait_for_timeout(80)
+    pg.keyboard.up("Control"); ex(g).to_have_attribute("data-note-grid", "4"); c4 = ncol()
+    pg.screenshot(path=str(SHOTS / "library_zoom_big.png"))
+    assert c0 > c2 > c4 >= 1, ("칸 수가 크기에 따라 안 바뀜", c0, c2, c4)
 def sc_new_yt(pg, ex):
     pg.get_by_role("button", name="유튜브").click()
     ex(pg.get_by_placeholder("https://youtube.com/watch?v=abc")).to_be_visible()
@@ -234,6 +246,33 @@ def sc_big(pg, ex):  # 크게 보기 = 왼쪽 영상·스크립트 칸이 넓어
     assert b["width"] >= 600 and hb["x"] >= b["x"] + b["width"], f"크게 보기 폭/리포트 겹침: {b} {hb}"
     pg.get_by_role("button", name="작게 보기").last.click()
     pg.wait_for_function("document.querySelector('[data-stage]').getBoundingClientRect().width < 400")
+def sc_panes(pg, ex):  # 칸 경계선 끌기(왼쪽·오른쪽) + 키보드 + 새로고침 뒤 유지 + 글 폭·여백 메뉴
+    def w(sel): return pg.locator(sel).first.bounding_box()["width"]
+    sp = pg.get_by_role("separator", name="영상·스크립트 칸 너비"); ex(sp).to_be_visible()
+    lw0 = int(sp.get_attribute("aria-valuenow")); b = sp.bounding_box(); x, y = b["x"] + b["width"] / 2, b["y"] + 300
+    pg.mouse.move(x, y); pg.mouse.down(); pg.mouse.move(x + 120, y, steps=6); pg.mouse.up()
+    lw1 = int(sp.get_attribute("aria-valuenow")); assert 100 <= lw1 - lw0 <= 140, (lw0, lw1)
+    rs = pg.get_by_role("separator", name="AI 채팅 칸 너비"); rs.focus(); rw0 = int(rs.get_attribute("aria-valuenow"))
+    pg.keyboard.press("Shift+ArrowLeft"); assert int(rs.get_attribute("aria-valuenow")) == rw0 + 64  # 왼쪽으로 = 채팅 칸 넓힘
+    h = pg.locator("[data-report] h1").first; hb = h.bounding_box(); rb = rs.bounding_box()
+    assert hb["x"] + hb["width"] <= rb["x"] + 4, f"리포트가 채팅 칸에 겹침 {hb} {rb}"
+    pg.reload(); h.wait_for()
+    assert int(sp.get_attribute("aria-valuenow")) == lw1, "새로고침 뒤 칸 너비 유지 안 됨"
+    mid0 = w("[data-report]")
+    pg.get_by_role("button", name="글 폭·여백 조절").click(); d = pg.get_by_role("dialog", name="글 폭·여백"); ex(d).to_be_visible()
+    d.get_by_label("꽉 채움(칸 폭만큼)").check(); d.get_by_role("slider", name="양옆 여백").focus(); pg.keyboard.press("Home")
+    ex(d.get_by_text("0px")).to_be_visible()
+    pg.screenshot(path=str(SHOTS / "note_panes_menu.png"))
+    pg.keyboard.press("Escape"); ex(d).to_have_count(0)
+    sec = pg.locator("section:has([data-report])").first.bounding_box()
+    assert w("[data-report]") >= sec["width"] - 12, ("꽉 채움 안 됨", mid0, w("[data-report]"), sec)
+    assert h.bounding_box()["x"] - sec["x"] <= 4, "여백 0인데 제목이 안쪽에 있음"
+    pg.screenshot(path=str(SHOTS / "note_panes_full.png"))
+    pg.get_by_role("button", name="글 폭·여백 조절").click(); d.get_by_role("slider", name="글 폭").focus(); pg.keyboard.press("Home")
+    pg.keyboard.press("Escape"); assert abs(w("[data-report]") - 480) <= 2, ("글 폭 480 안 됨", w("[data-report]"))
+    sp.dblclick(); assert int(sp.get_attribute("aria-valuenow")) == 330, "두 번 누르면 기본 너비"
+    pg.get_by_role("button", name="글 폭·여백 조절").click(); pg.get_by_role("button", name="모두 기본값").click()
+    assert int(rs.get_attribute("aria-valuenow")) == 330
 def sc_hold2x(pg, ex):
     st = pg.locator("[data-stage]"); _box(pg, "[data-stage]")
     pg.keyboard.down("Space"); pg.wait_for_timeout(600)
@@ -559,6 +598,7 @@ APP = "--app" in sys.argv  # 실제 앱 창(WebView2) 검사  # 실제 유튜브
 SCENARIOS = [
     ("home", "/", 1440, False, sc_home),
     ("library", "/library", 1440, False, sc_library),
+    ("library_zoom", "/library", 1440, False, sc_lib_zoom),
     ("trash", "/library", 1440, False, sc_trash),
     ("subscriptions", "/subscriptions", 1440, False, sc_subs),
     ("home_390", "/", 390, False, lambda pg, ex: ex(pg.locator("[data-card]").first).to_be_visible()),
@@ -573,6 +613,7 @@ SCENARIOS = [
     ("chat_time_off", f"/note/{VIDEO}", 1440, False, sc_chat_time_off),
     ("chat_time_on", f"/note/{VIDEO}", 1440, False, sc_chat_time_on),
     ("player_big", f"/note/{VIDEO}", 1440, False, sc_big),
+    ("note_panes", f"/note/{VIDEO}", 1440, False, sc_panes),
     ("player_hold2x", f"/note/{VIDEO}", 1440, False, sc_hold2x),
     ("player_big_hold", f"/note/{VIDEO}", 1440, False, sc_big_hold),
     ("player_space_input", f"/note/{VIDEO}", 1440, False, sc_space_input),

@@ -4,6 +4,12 @@
 
 
 
+## 2026-10-13 칸 크기 직접 조절 · 리포트 폭 넓힘 · 라이브러리 카드 축소·확대
+- 노트 화면: 왼쪽(영상·스크립트)·가운데(리포트)·오른쪽(AI 채팅) 사이 경계선을 끌어 너비 조절(←/→ 키, Shift는 크게, 두 번 누르면 기본 330px). 가운데는 최소 420px 보장. 왜: 사용자 요청(요약이 좁게 떨어져 보임). 어디: components/Panes.tsx(Splitter·useLayout), pages/Note.tsx.
+- 리포트 글 폭·여백: 머리줄 ↔ 버튼 메뉴에서 글 폭 480~1600px·꽉 채움, 양옆 여백 0~120px, 모두 기본값. 기본값을 560px+여백 60px → 900px+여백 32px로 넓힘(1440 화면에선 칸을 꽉 채움). 「크게 보기」는 같은 왼쪽 너비 값을 46vw로 바꾸는 방식으로 통합. 값은 localStorage vn-layout에 기억.
+- 라이브러리·컬렉션 카드 크기 5단계(최소 150~440px): − / 슬라이더 / +, 목록 위에서 Ctrl+휠. 작게 하면 한 줄에 7칸(1440 기준), 크게 하면 2칸. localStorage vn-lib-zoom. 어디: pages/Library.tsx NoteGrid.
+- 참고 서비스와 달라진 점: 릴리스는 칸 너비가 고정(끌기 없음) / 우리는 끌어서 조절 / 사용자가 직접 요청.
+
 ## 2026-10-13 데스크톱 앱이 안 켜지던 문제 · verify 시험 데이터 복사
 - 앱 창 멈춤(응답 없음, 서버도 안 뜸): app.pyw의 창 기능 객체(Api)에 창을 `window`로 붙여 두어, pywebview가 화면용 함수 목록을 만들 때 창의 .NET 객체 속(AccessibilityObject.Bounds.Empty…)까지 끝없이 파고들며 UI 스레드를 막음 → `_window`로 바꿔 훑기 대상에서 뺌(pywebview는 `_`로 시작하는 이름을 건너뜀). 어디: app.pyw Api. 확인: 고친 뒤 창 Responding=True, /api/notes 응답, data/app.log 오류 0줄.
 - verify 시험 데이터: 시험용 웹 글 노트(a24a0876c78)가 실제 DB에서 지워져 옛 백업에서 가져오는데, 옛 백업엔 deleted_at 칸이 없어 `SELECT *`가 실패 → 두 DB에 다 있는 칸만 옮김. 어디: verify/run.py seed(). 결과 verify --app 47/47.

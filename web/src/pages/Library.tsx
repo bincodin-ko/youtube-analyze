@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { AudioLines, Check, FileText, Film, Folder, Layers, Loader2, MoreHorizontal, Search, Trash2 } from 'lucide-react'
+import { AudioLines, Check, FileText, Film, Folder, Layers, Loader2, MoreHorizontal, Search, Trash2, ZoomIn, ZoomOut } from 'lucide-react'
 import Sidebar, { MobileBar } from '../components/Sidebar'
 import { ConfirmNote } from '../components/NoteMenu'
 import { CombinedList, listCombined, makeCombined, type CombinedItem } from './Combined'
@@ -36,6 +36,8 @@ function Status({ n }: { n: NoteSummary }) {
 }
 
 // 노트 카드 격자 (홈·라이브러리·컬렉션 공용). … 메뉴에서 컬렉션 지정
+const CW = [150, 200, 260, 340, 440] // 카드 최소 너비(축소 0 ~ 확대 4)
+
 export function NoteGrid({ notes, onMoved, sel, onSel }: { notes: NoteSummary[]; onMoved?: () => void; sel?: Set<string>; onSel?: (id: string) => void }) {
   const [menu, setMenu] = useState<string | null>(null)
   const [cols, setCols] = useState<Collection[]>([])
@@ -46,15 +48,26 @@ export function NoteGrid({ notes, onMoved, sel, onSel }: { notes: NoteSummary[];
     await moveNote(n.id, cid)
     collectionsChanged(); onMoved?.()
   }
+  const [z, setZ] = useState(() => { try { return Math.min(4, Math.max(0, Number(localStorage.getItem('vn-lib-zoom') ?? 2))) } catch { return 2 } })
+  const zoom = (v: number) => { const n = Math.min(4, Math.max(0, v)); setZ(n); try { localStorage.setItem('vn-lib-zoom', String(n)) } catch { /* 이번 화면만 */ } }
+  const small = z <= 1
   return (
-    <ul className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
+    <>
+    {/* 카드 크기(축소·확대): − / 슬라이더 / +, 목록 위 Ctrl+휠. 작게 하면 한 줄에 더 많이 */}
+    <div className="flex items-center justify-end gap-1.5 mb-3 text-soft">
+      <button onClick={() => zoom(z - 1)} disabled={z === 0} aria-label="카드 작게" title="작게 (더 많이 보기)" className="grid place-items-center size-8 rounded-lg hover:bg-subtle disabled:opacity-30"><ZoomOut size={17} /></button>
+      <input type="range" min={0} max={4} step={1} value={z} onChange={(e) => zoom(Number(e.target.value))} aria-label="카드 크기" className="w-[96px] accent-[var(--color-fg)]" />
+      <button onClick={() => zoom(z + 1)} disabled={z === 4} aria-label="카드 크게" title="크게 (덜 보기)" className="grid place-items-center size-8 rounded-lg hover:bg-subtle disabled:opacity-30"><ZoomIn size={17} /></button>
+    </div>
+    <ul data-note-grid={z} onWheel={(e) => { if (e.ctrlKey) { e.preventDefault(); zoom(z + (e.deltaY > 0 ? -1 : 1)) } }}
+      className={`grid ${small ? 'gap-2.5' : 'gap-4'} grid-cols-[repeat(auto-fill,minmax(min(100%,var(--cw)),1fr))]`} style={{ '--cw': `${CW[z]}px` } as React.CSSProperties}>
       {notes.map((n) => (
         <li key={n.id} className="relative">
           <Link to={`/note/${n.id}`} className="block rounded-xl border border-line overflow-hidden bg-bg hover:bg-subtle">
             <div className="aspect-video bg-subtle">{n.kind === 'pdf' || n.kind === 'audio' || n.kind === 'localvideo' ? <span className="size-full grid place-items-center text-muted">{n.kind === 'pdf' ? <FileText size={40} strokeWidth={1.25} /> : n.kind === 'audio' ? <AudioLines size={40} strokeWidth={1.25} /> : <Film size={40} strokeWidth={1.25} />}</span> : <img src={n.thumbnail || `https://i.ytimg.com/vi/${n.id.slice(0, 11)}/mqdefault.jpg`} alt="" className="size-full object-cover" />}</div>
-            <div className="p-3.5 pr-10">
-              <p className="text-[15px] font-semibold leading-snug line-clamp-2">{n.title}</p>
-              <p className="text-[13px] text-muted mt-1.5 truncate">{n.channel}{n.channel && ' · '}{n.created_at.slice(0, 10).replaceAll('-', '. ')}<Status n={n} /></p>
+            <div className={small ? 'p-2.5 pr-9' : 'p-3.5 pr-10'}>
+              <p className={`${small ? 'text-[13px]' : 'text-[15px]'} font-semibold leading-snug line-clamp-2`}>{n.title}</p>
+              <p className={`${small ? 'text-[12px] mt-1' : 'text-[13px] mt-1.5'} text-muted truncate`}>{n.channel}{n.channel && ' · '}{n.created_at.slice(0, 10).replaceAll('-', '. ')}<Status n={n} /></p>
             </div>
           </Link>
           {onSel && n.status === 'done' && (  // 통합 요약용 체크
@@ -85,6 +98,7 @@ export function NoteGrid({ notes, onMoved, sel, onSel }: { notes: NoteSummary[];
       ))}
       {del && <ConfirmNote id={del.id} title={del.title} onCancel={() => setDel(null)} onDone={() => { setDel(null); onMoved?.() }} />}
     </ul>
+    </>
   )
 }
 

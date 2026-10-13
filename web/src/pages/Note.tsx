@@ -17,6 +17,7 @@ import { ExpandBody, ExpandMenu, useExpand } from '../components/Expand'
 import ReportFoot from '../components/ReportFoot'
 import { FoldLine, SummaryDiagram, TocRail } from '../components/SummaryBits'
 import Stage, { type Ctl } from '../components/Stage'
+import { Splitter, WidthMenu, useLayout } from '../components/Panes'
 
 // ---- YouTube IFrame 플레이어 ----
 type YTPlayer = { seekTo(s: number, a: boolean): void; playVideo(): void; pauseVideo(): void; getPlayerState(): number; getCurrentTime(): number; destroy(): void
@@ -272,7 +273,15 @@ export default function NotePage() {
   const { host, seek: ytSeek, player } = usePlayer(art || local ? undefined : note?.video_id, setTime)
   // 크게 보기(localStorage 유지) · 영상 자리표시자와 리포트 영역 ref (Stage가 따라다님)
   const [big, setBig] = useState(() => { try { return localStorage.getItem('vn-big') === '1' } catch { return false } })
+  const lay = useLayout() // 칸 너비·글 폭·여백(사용자가 끌기·메뉴로 조절, 이 브라우저에 기억)
+  const [vw, setVw] = useState(innerWidth)
+  useEffect(() => { const f = () => setVw(innerWidth); addEventListener('resize', f); return () => removeEventListener('resize', f) }, [])
+  const MIN_MID = 420 // 가운데 리포트 칸 최소 너비
+  const leftMax = vw - (right ? lay.l.right : 0) - MIN_MID
+  const rightMax = vw - (left ? lay.l.left : 0) - MIN_MID
+  const lw = Math.max(260, Math.min(lay.l.left, leftMax)), rw = Math.max(280, Math.min(lay.l.right, rightMax))
   const toggleBig = () => setBig((b) => { if (!b) setLeft(true) // 크게 보기 = 왼쪽 영상·스크립트 칸을 넓힘(접혀 있으면 펼침)
+    lay.patch({ left: b ? 330 : Math.round(Math.min(innerWidth * 0.46, innerWidth - 770)) })
     try { localStorage.setItem('vn-big', b ? '0' : '1') } catch { /* 저장 불가 */ } return !b })
   const leftSlot = useRef<HTMLDivElement>(null)
   const ctl = useMemo<Ctl>(() => ({
@@ -319,7 +328,7 @@ export default function NotePage() {
       </div>
       <div className="flex flex-1 min-h-0">
         {/* 왼쪽 330 */}
-        <section className={`${tab === 'video' ? 'flex' : 'hidden'} ${left ? 'min-[1100px]:flex' : 'min-[1100px]:hidden'} flex-col w-full ${big ? 'min-[1100px]:w-[min(46vw,calc(100vw-770px))]' : 'min-[1100px]:w-[330px]'} shrink-0 border-r border-line min-h-0`}>
+        <section className={`${tab === 'video' ? 'flex' : 'hidden'} ${left ? 'min-[1100px]:flex' : 'min-[1100px]:hidden'} flex-col w-full min-[1100px]:w-[var(--lw)] shrink-0 border-r border-line min-h-0`} style={{ '--lw': `${lw}px` } as React.CSSProperties}>
           <div className="flex items-center gap-2 h-12 px-3 shrink-0">
             <button onClick={() => nav('/')} className={iconBtn + ' border border-line'} title="홈"><PanelLeft size={18} strokeWidth={1.5} /></button>
             <button onClick={() => nav('/new')} className="h-8 px-3.5 rounded-full bg-fg text-bg text-[14px] font-semibold">새로 만들기</button>
@@ -341,6 +350,7 @@ export default function NotePage() {
           <Script note={note} time={time} seek={seek} />
           </>}
         </section>
+        {left && <Splitter label="영상·스크립트 칸 너비" value={lw} min={260} max={leftMax} dir={1} onChange={(v) => lay.patch({ left: v })} onReset={() => lay.reset(['left'])} />}
 
         {/* 가운데 리포트 */}
         <section className={`${tab === 'report' ? 'block' : 'hidden'} min-[1100px]:block @container flex-1 min-w-0 overflow-y-auto scroll-thin`}>
@@ -354,13 +364,14 @@ export default function NotePage() {
             {mode === 'expand' && <ExpandMenu ex={ex} />}
             <LengthMenu style={style} busy={styleBusy} onPick={pickStyle} />
             <div className="ml-auto flex items-center">
+              <WidthMenu {...lay} className={iconBtn + ' hidden min-[1100px]:grid'} />
               <ShareMenu id={note.id} ready={note.status === 'done' && !!r} className={iconBtn} />
               <NoteMenu id={note.id} title={note.title} collectionId={note.collection_id} canDelete={note.status !== 'processing'} className={iconBtn} onDeleted={() => nav('/library')} />
               <ThemeButton />
               {!right && <button onClick={() => setRight(true)} className={iconBtn + ' hidden min-[1100px]:grid'} title="펼치기"><ChevronsLeft size={18} /></button>}
             </div>
           </div>
-          <div data-report className={`max-w-[560px] mx-auto px-5 ${big ? '' : 'min-[1100px]:px-[60px]'} pb-24`}>
+          <div data-report className="mx-auto px-5 min-[1100px]:px-[var(--pad)] max-w-[var(--tw)] pb-24" style={{ '--pad': `${lay.l.pad}px`, '--tw': lay.l.text ? `${lay.l.text + 2 * lay.l.pad}px` : 'none' } as React.CSSProperties}>
             {styleErr && <p className="mt-4 text-[14px] text-muted">{styleErr}</p>}
             {note.status !== 'done' || !r ? (
               <Progress kind={note.kind} id={note.id} initial={note.step} error={note.error ?? (note.status === 'done' ? '요약을 만들지 못했어요. 노트를 지우고 다시 넣어 주세요.' : null)} onDone={reload} />
@@ -433,8 +444,9 @@ export default function NotePage() {
           </div>
         </section>
 
+        {right && <Splitter label="AI 채팅 칸 너비" value={rw} min={280} max={rightMax} dir={-1} onChange={(v) => lay.patch({ right: v })} onReset={() => lay.reset(['right'])} />}
         {/* 오른쪽 채팅 자리 */}
-        <section className={`${tab === 'chat' ? 'flex' : 'hidden'} ${right ? 'min-[1100px]:flex' : 'min-[1100px]:hidden'} flex-col w-full min-w-0 min-[1100px]:w-[330px] shrink-0 min-[1100px]:border-l border-line min-h-0`}>
+        <section className={`${tab === 'chat' ? 'flex' : 'hidden'} ${right ? 'min-[1100px]:flex' : 'min-[1100px]:hidden'} flex-col w-full min-w-0 min-[1100px]:w-[var(--rw)] shrink-0 min-[1100px]:border-l border-line min-h-0`} style={{ '--rw': `${rw}px` } as React.CSSProperties}>
           <div className="flex items-center h-12 px-4 border-b border-line shrink-0">
             <PanelTabs tab={rn.rtab} setTab={rn.setRtab} />
             <button onClick={() => setRight(false)} className="ml-auto text-soft hidden min-[1100px]:block" title="접기"><ChevronsRight size={18} /></button>
