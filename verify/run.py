@@ -77,8 +77,10 @@ def seed():
             miss = [i for i in SEED_IDS if i not in have]
             if not miss: break
             d.execute("ATTACH DATABASE ? AS b", (str(b),))  # 읽기만 함
-            try: d.execute(f"INSERT INTO notes SELECT * FROM b.notes WHERE id IN ({','.join('?' * len(miss))})", miss)
-            except sqlite3.Error: pass  # 옛 백업은 칸 구성이 달라 건너뜀
+            try:  # 옛 백업은 칸이 적을 수 있음(예: deleted_at) → 둘 다 있는 칸만 옮김
+                cols = ",".join(c[1] for c in d.execute("PRAGMA b.table_info(notes)") if c[1] in {r[1] for r in d.execute("PRAGMA main.table_info(notes)")})
+                d.execute(f"INSERT INTO notes ({cols}) SELECT {cols} FROM b.notes WHERE id IN ({','.join('?' * len(miss))})", miss)
+            except sqlite3.Error: pass
             d.commit(); d.execute("DETACH DATABASE b")
             have = {r[0] for r in d.execute("SELECT id FROM notes")}
         n = d.execute("SELECT count(*) FROM notes").fetchone()[0]

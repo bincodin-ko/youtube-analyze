@@ -12,7 +12,6 @@
 | Ollama 대체 모델 받기(선택) | 터미널에서 `ollama pull gemma4:12b` (약 8GB) (열기: - > - > @gemma4:12b: ollama list에 보이면 정상) | 10~20분(다운로드) | "gemma 받았어" | Claude 한도가 막혔을 때 로컬 대체 요약 | 대기 |
 | 테스트 노트 정리(선택) | 영상노트 보관함에서 시험용 노트를 삭제: 「Rob Pike 강연」, 「애플 키보드」(카툰만 지움), 「untitled」(PDF)·「test」(음성)·「short」(영상), Joel Test 웹 글들. 확장 탭의 나만의 템플릿 「면접 질문 만들기」는 모달 ⚙에서 삭제 (열기: http://127.0.0.1:8766/ > 보관함 > @Concurrency is not Parallelism: 노트가 보이면 정리 대상) | 5분 | "테스트 노트 지웠어" | 실제 DB에 남은 시험 데이터 정리 | 대기 |
 | data/pw-browsers 삭제(선택) | 탐색기에서 프로젝트 폴더의 data/pw-browsers(약 700MB, 확장 시험용 번들 Chromium)를 삭제. 확장 확인이 끝난 뒤에 (열기: data/pw-browsers > - > @pw-browsers: 폴더가 있으면 삭제 대상) | 1분 | "pw-browsers 지웠어" | 디스크 700MB 확보(시험용이라 앱 동작과 무관) | 대기 |
-| 보완한 feature-mimic 스킬을 클로드 데스크톱 앱에 올리기 | 클로드 데스크톱 앱 > 설정 > 기능(Capabilities) > 스킬 > feature-mimic 바꾸기(업로드), 파일 `Desktop/skill/feature-mimic.zip` (계정에 올리는 일이라 사용자만 가능) | 1분 | "스킬 올렸어" | 다음 세션부터 범위 3택 질문·화면 대조표 규칙 적용 | 대기 |
 
 ## A. 나중에 고칠 것
 

@@ -4,6 +4,11 @@
 
 
 
+## 2026-10-13 데스크톱 앱이 안 켜지던 문제 · verify 시험 데이터 복사
+- 앱 창 멈춤(응답 없음, 서버도 안 뜸): app.pyw의 창 기능 객체(Api)에 창을 `window`로 붙여 두어, pywebview가 화면용 함수 목록을 만들 때 창의 .NET 객체 속(AccessibilityObject.Bounds.Empty…)까지 끝없이 파고들며 UI 스레드를 막음 → `_window`로 바꿔 훑기 대상에서 뺌(pywebview는 `_`로 시작하는 이름을 건너뜀). 어디: app.pyw Api. 확인: 고친 뒤 창 Responding=True, /api/notes 응답, data/app.log 오류 0줄.
+- verify 시험 데이터: 시험용 웹 글 노트(a24a0876c78)가 실제 DB에서 지워져 옛 백업에서 가져오는데, 옛 백업엔 deleted_at 칸이 없어 `SELECT *`가 실패 → 두 DB에 다 있는 칸만 옮김. 어디: verify/run.py seed(). 결과 verify --app 47/47.
+- feature-mimic 스킬: 범위 3택·화면 대조표(1-2b)·완료 조건 넣은 zip을 claude.ai 사용자 지정 > Skills > feature-mimic > 교체로 올림(v12 → v13, 내용에 「가져올 범위」「1-2b」 확인).
+
 ## 2026-10-13 릴리스 홈·노트 화면 배치 맞춤(사용자 캡처 2장, 대조표 mimic/lilys-home/screen-diff.md)
 - 홈: 큰 회색 「새로 추가하기」 상자 → 위 줄 오른쪽 검은 버튼. 「최근 노트」 3열 큰 카드 → 「라이브러리」 + 「→ 전체 보기」 + 212px 작은 카드(종류 아이콘·제목·유튜브/웹사이트·날짜). 어디: web/src/pages/Home.tsx
 - 구독(새): 채널 링크 등록 → 최신 5개 중 노트 없는 영상 목록, 누르면 노트 만들기(자동 생성 안 함, 사용자 결정). 어디: backend/app/main.py /api/subs*, data/subs.json, pages/Subs.tsx(/subscriptions)
