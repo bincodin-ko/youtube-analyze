@@ -1,4 +1,4 @@
-# verify --app 보조: CDP로 실제 WebView2 창을 읽어 확인. 1=☆ 켜고 스타일 창·PPT 창, 2=창을 다시 연 뒤 ☆ 유지(재시작 시 설정 유지)
+# 시험 --app 보조: CDP로 실제 WebView2 창을 읽어 확인. 1=☆ 켜고 스타일 창·PPT 창, 2=창을 다시 연 뒤 ☆ 유지(재시작 시 설정 유지)
 import sys
 from playwright.sync_api import sync_playwright
 phase, out = sys.argv[1], sys.argv[2]

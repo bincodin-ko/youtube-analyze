@@ -5,5 +5,5 @@ web/node_modules/
 web/dist/
 __pycache__/
 tools/comfyui/
-.verify/
+.test-out/
 *.bak-*

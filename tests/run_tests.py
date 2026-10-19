@@ -1,12 +1,12 @@
-"""영상노트 verify: 빌드·린트 → 백엔드 자체 점검 → 시험 데이터 복사 → 빈 포트 서버 → Playwright headless 화면 시나리오.
-결과 .verify/summary.md + .verify/shots/*.png, 하나라도 실패하면 exit 1. 실제 data/는 읽기만 한다.
-실행: verify.bat (= uv run --project backend python verify/run.py)"""
+"""영상노트 시험: 빌드·린트 → 백엔드 자체 점검 → 시험 데이터 복사 → 빈 포트 서버 → Playwright headless 화면 시나리오.
+결과 .test-out/summary.md + .test-out/shots/*.png, 하나라도 실패하면 exit 1. 실제 data/는 읽기만 한다.
+실행: uv run --project backend python tests/run_tests.py"""
 import json, os, re, shutil, socket, sqlite3, subprocess, sys, time, urllib.request
 from pathlib import Path
 from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
-V = ROOT / ".verify"
+V = ROOT / ".test-out"
 DATA, SHOTS = V / "data", V / "shots"
 VIDEO, ARTICLE = "78f1gpZXz4k-1791302454", "a24a0876c78-1791464214"
 SEED_IDS = os.environ.get("VN_SEED_IDS", f"{VIDEO},{ARTICLE},FlKHoxHe2O0-1791460989").split(",")
@@ -112,7 +112,7 @@ def start_server():
     base = f"http://127.0.0.1:{port}"
     for _ in range(120):
         if p.poll() is not None:
-            raise RuntimeError("서버가 바로 꺼짐 — .verify/server.log 참고")
+            raise RuntimeError("서버가 바로 꺼짐 — .test-out/server.log 참고")
         try:
             urllib.request.urlopen(base + "/api/notes", timeout=2); return p, base
         except OSError:
@@ -581,7 +581,7 @@ def sc_inspector_fixes(pg, ex):
     foot = pg.locator("[data-report] [data-foot]").last  # 요약 아래: 이미 만든 액션아이템은 추천에서 빠짐
     ex(foot.get_by_role("button", name="중요 인용구 한눈에 보기")).to_have_count(1)
     ex(foot.get_by_role("button", name="바로 적용할 수 있는 액션 아이템 도출")).to_have_count(0)
-    ex(pg.locator("[data-diagram-fail]")).to_be_visible()  # verify는 도식 생성(POST)을 막음 → 실패 표시 + 다시 시도
+    ex(pg.locator("[data-diagram-fail]")).to_be_visible()  # 시험은 도식 생성(POST)을 막음 → 실패 표시 + 다시 시도
     pg.get_by_role("button", name="확장", exact=True).first.click()
     pg.get_by_role("button", name="확장 리포트 목록").click(); pg.get_by_role("button", name="확장 리포트 추가").click()
     ex(pg.get_by_role("dialog", name="확장 리포트 추가")).to_be_visible(); pg.keyboard.press("Escape")
@@ -713,12 +713,12 @@ def main():
                     st, stop = V / "webview-app", V / "app.stop"
                     shutil.rmtree(st, ignore_errors=True); stop.unlink(missing_ok=True)
                     for phase in ("1", "2"):
-                        w = subprocess.Popen([sys.executable, str(ROOT / "verify" / "app_window.py"), base + "/note/FlKHoxHe2O0-1791460989", str(st), str(stop)])
+                        w = subprocess.Popen([sys.executable, str(ROOT / "tests" / "app_window.py"), base + "/note/FlKHoxHe2O0-1791460989", str(st), str(stop)])
                         try:
                             for _ in range(40):
                                 try: urllib.request.urlopen("http://127.0.0.1:9333/json/version", timeout=1); break
                                 except OSError: time.sleep(1)
-                            r = subprocess.run([sys.executable, str(ROOT / "verify" / "app_check.py"), phase, str(SHOTS / "app")], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
+                            r = subprocess.run([sys.executable, str(ROOT / "tests" / "app_check.py"), phase, str(SHOTS / "app")], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
                             assert r.returncode == 0, (r.stdout + r.stderr)[-400:]
                         finally:
                             stop.touch(); w.wait(30); stop.unlink(missing_ok=True)  # 우리가 띄운 창만 닫음
@@ -728,13 +728,13 @@ def main():
     if srv:
         srv.terminate(); srv.wait(10)  # 시작한 PID만
     fails = [r for r in results if not r[1]]
-    lines = [f"# verify 결과 — {time.strftime('%Y-%m-%d %H:%M')}", "",
+    lines = [f"# 시험 결과 — {time.strftime('%Y-%m-%d %H:%M')}", "",
              f"- 걸린 시간: {time.time() - t0:.0f}초 / 통과 {len(results) - len(fails)}/{len(results)}",
-             f"- 시험 데이터 원본: {seed_dir()} (복사본: .verify/data) / 스크린샷: .verify/shots/", "",
+             f"- 시험 데이터 원본: {seed_dir()} (복사본: .test-out/data) / 스크린샷: .test-out/shots/", "",
              "| 단계 | 결과 | 이유·시간 |", "|---|---|---|"]
     lines += [f"| {n} | {'통과' if ok else '실패'} | {why.replace('|', '/').replace(chr(10), ' ')} |" for n, ok, why in results]
     (V / "summary.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print(f"\n{'OK' if not fails else 'FAIL'} — {len(results) - len(fails)}/{len(results)} 통과, {time.time() - t0:.0f}초 → .verify/summary.md")
+    print(f"\n{'OK' if not fails else 'FAIL'} — {len(results) - len(fails)}/{len(results)} 통과, {time.time() - t0:.0f}초 → .test-out/summary.md")
     sys.exit(1 if fails else 0)
 
 
