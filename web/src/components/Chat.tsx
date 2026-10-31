@@ -151,7 +151,7 @@ export default function Chat({ note, seek, quote }: { note: Note; seek: (t: numb
           <span className={icon} title="다음 단계"><AtSign size={16} /></span>
           <span className={icon} title="다음 단계"><Globe size={16} /></span>
           <button onClick={toggleTime} aria-pressed={time} title="답변의 [시간] 버튼 표시"
-            className={`flex items-center gap-1 h-7 px-2 rounded-md text-[12px] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-fg ${time ? 'bg-hl text-link font-semibold' : 'text-muted hover:bg-subtle'}`}><Clock size={14} />시간 표시</button>
+            className={`flex items-center gap-1 h-7 px-2 rounded-md text-[12px] whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-fg ${time ? 'bg-hl text-link font-semibold' : 'text-muted hover:bg-subtle'}`}><Clock size={14} />시간 표시</button>
           <span className="ml-auto mr-1"><ModePicker /></span>
           <button onClick={() => send(q)} disabled={!q.trim() || busy || !ready} title="보내기"
             className="grid place-items-center size-7 rounded-full bg-fg text-bg disabled:bg-line disabled:text-muted"><ArrowUp size={15} /></button>

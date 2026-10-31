@@ -1,26 +1,31 @@
-// 채팅 입력창 설정: 답할 AI·범위(모드) 고르기 + Claude 계정 연결/끊기. 모드는 이 브라우저에 기억(기본 로컬·영상 안만)
+// 채팅 입력창 설정: 답할 AI·범위(모드) 고르기 + Claude 계정 연결/끊기. 모드는 이 브라우저에 기억(기본 자동)
 import { useEffect, useRef, useState } from 'react'
 import { Check, ChevronDown, Cpu, Loader2, Sparkles } from 'lucide-react'
 import { MOCK } from '../api'
 
-export type ChatMode = 'local_strict' | 'local_open' | 'claude'
+export type ChatMode = 'auto' | 'local_strict' | 'local_open' | 'claude'
 export type ClaudeState = { installed: boolean; loggedIn: boolean; email?: string; plan?: string }
 type Models = { local: string; local_ready: boolean | null }
 
-export const MODE_LABEL: Record<ChatMode, string> = { local_strict: '로컬 · 영상 안만', local_open: '로컬 · 영상 밖도', claude: 'Claude · 영상 밖도' }
+export const MODE_LABEL: Record<ChatMode, string> = { auto: '자동 · 로컬+Claude', local_strict: '로컬 · 영상 안만', local_open: '로컬 · 영상 밖도', claude: 'Claude · 영상 밖도' }
+// 입력창 버튼용 짧은 이름(좁은 칸에서 줄바꿈 안 되게)
+const MODE_SHORT: Record<ChatMode, string> = { auto: '자동', local_strict: '로컬·영상 안', local_open: '로컬·영상 밖도', claude: 'Claude' }
 const MODE_DESC: Record<ChatMode, string> = {
+  auto: '영상에 있는 건 로컬 모델이 답하고, 영상에 없는 부분만 Claude가 이어서 (일반 지식 · Claude)로 답해요. Claude에는 그 질문, 영상 제목, 로컬 답 첫 문장만 보내요(대본은 안 보내요).',
   local_strict: '이 PC의 로컬 모델이 영상 내용으로만 답해요. 영상에 없는 건 없다고 해요. 질문이 PC 밖으로 나가지 않아요.',
   local_open: '로컬 모델이 영상에 없는 것도 일반 지식으로 답해요((일반 지식) 표시). 질문이 PC 밖으로 나가지 않아요.',
   claude: '내 Claude 구독 계정으로 답해요. 영상에 없는 것도 (일반 지식)으로 표시해 답해요. 질문이 Anthropic으로 보내져요.',
 }
 
 // ---- 모드(모든 채팅이 같은 값 사용) ----
-let mode: ChatMode = (() => { try { const m = localStorage.getItem('chatMode'); return m === 'local_open' || m === 'claude' ? m : 'local_strict' } catch { return 'local_strict' } })()
+const KEY = 'chatMode2' // 기본을 자동으로 바꾸며 키를 새로(예전 'chatMode' 값은 무시)
+const isMode = (m: unknown): m is ChatMode => m === 'auto' || m === 'local_strict' || m === 'local_open' || m === 'claude'
+let mode: ChatMode = (() => { try { const m = localStorage.getItem(KEY); return isMode(m) ? m : 'auto' } catch { return 'auto' } })()
 const modeSubs = new Set<(m: ChatMode) => void>()
 export function useChatMode(): [ChatMode, (m: ChatMode) => void] {
   const [m, setM] = useState(mode)
   useEffect(() => { modeSubs.add(setM); return () => { modeSubs.delete(setM) } }, [])
-  return [m, (x) => { mode = x; try { localStorage.setItem('chatMode', x) } catch { /* 이번 화면만 */ } modeSubs.forEach((f) => f(x)) }]
+  return [m, (x) => { mode = x; try { localStorage.setItem(KEY, x) } catch { /* 이번 화면만 */ } modeSubs.forEach((f) => f(x)) }]
 }
 
 // ---- Claude 연결 상태·로컬 모델 정보 ----
@@ -73,26 +78,26 @@ export function ModePicker() {
   const login = async () => { if (await call('/api/claude/login')) setWait(true) }
   const logout = async () => {
     if (!confirm('Claude 계정 연결을 끊을까요? Claude Code 로그인도 함께 풀려요. 다시 쓰려면 연결하기를 눌러 로그인해야 해요.')) return
-    if (await call('/api/claude/logout')) { if (m === 'claude') setM('local_strict'); load(true) }
+    if (await call('/api/claude/logout')) { if (m === 'claude') setM('auto'); load(true) }
   }
   const pick = (x: ChatMode) => { setM(x); setOpen(false) }
   const local = md?.local ?? 'gemma4:12b'
   return (
     <div ref={box} className="relative">
       <button onClick={() => setOpen(!open)} title="답할 AI와 범위 설정" aria-expanded={open}
-        className="flex items-center gap-1 h-7 px-2 rounded-md text-[12px] text-soft hover:bg-subtle">
-        {m === 'claude' ? <Sparkles size={13} className="text-link" /> : <Cpu size={13} />}{MODE_LABEL[m]}<ChevronDown size={12} />
+        className="flex items-center gap-1 h-7 px-2 rounded-md text-[12px] text-soft hover:bg-subtle whitespace-nowrap">
+        {m === 'claude' || m === 'auto' ? <Sparkles size={13} className="text-link" /> : <Cpu size={13} />}{MODE_SHORT[m]}<ChevronDown size={12} />
       </button>
       {open && (
         <div className="absolute bottom-9 right-0 z-30 w-[300px] rounded-xl border border-line bg-bg shadow-lg p-2 text-[13px]">
           <p className="px-2 pt-1 pb-2 text-muted">답할 AI와 범위</p>
-          {(['local_strict', 'local_open', 'claude'] as const).map((x) => {
+          {(['auto', 'local_strict', 'local_open', 'claude'] as const).map((x) => {
             const off = x === 'claude' && c != null && !c.loggedIn
             return (
               <button key={x} onClick={() => !off && pick(x)} disabled={off}
                 className={`w-full text-left rounded-lg px-2 py-2 flex gap-2 ${m === x ? 'bg-subtle' : 'hover:bg-subtle'} disabled:opacity-50`}>
                 <span className="w-4 shrink-0 pt-0.5">{m === x && <Check size={14} />}</span>
-                <span><span className="font-semibold">{MODE_LABEL[x]}</span>{x === 'local_strict' && <span className="ml-1.5 text-[11px] text-muted">기본</span>}
+                <span><span className="font-semibold">{MODE_LABEL[x]}</span>{x === 'auto' && <span className="ml-1.5 text-[11px] text-muted">기본</span>}
                   <span className="block mt-0.5 text-muted leading-snug">{MODE_DESC[x]}</span></span>
               </button>
             )
@@ -129,5 +134,5 @@ export function ModeNote({ what = '영상' }: { what?: string }) {
   const [m] = useChatMode()
   const { models: md } = useInfo()
   const local = md?.local ?? 'gemma4:12b'
-  return <>{m === 'claude' ? `Claude가 ${what} 밖 질문도 (일반 지식)으로 답해요` : m === 'local_open' ? `로컬 모델(${local})이 ${what} 밖 질문도 (일반 지식)으로 답해요` : `로컬 모델(${local})이 ${what} 내용으로만 답해요`}</>
+  return <>{m === 'auto' ? `${what}에 있는 건 로컬 모델(${local}), 없는 부분은 Claude가 답해요` : m === 'claude' ? `Claude가 ${what} 밖 질문도 (일반 지식)으로 답해요` : m === 'local_open' ? `로컬 모델(${local})이 ${what} 밖 질문도 (일반 지식)으로 답해요` : `로컬 모델(${local})이 ${what} 내용으로만 답해요`}</>
 }

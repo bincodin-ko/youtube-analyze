@@ -2,6 +2,7 @@
 
 <!-- namunil:begin — 남은일이 자동으로 쓰는 칸. 고칠 때는 남은일 앱이나 namunil MCP로 -->
 ## 남은일 · 바뀐 점(새 것이 위, 최근 50)
+- 2026-10-31 채팅 자동 모드(기본): 영상 안은 로컬 gemma4:12b, 영상 밖 부분만 Claude가 (일반 지식 · Claude)로 이어 답함 — Claude에는 맥락 담은 질문 한두 문장과 영상 제목만 보냄. 저장 키 chatMode2.
 - 2026-10-31 채팅 모드 3개(로컬·영상 안만 기본 / 로컬·영상 밖도 / Claude), 입력창 설정에서 Claude 연결·끊기, 로컬 모델 gemma4:12b 설치 — 사이드바 Claude 칸 제거, 메뉴 'AI와 대화'. 라이브러리 체크는 '대화할 노트 고르기' 때만. 추천 질문·요약 생성은 그대로 Claude 우선.
 - 2026-10-31 Claude 연결 칸(사이드바 아래)·'Claude와 대화' 메뉴/화면·노트 체크→바로 여러 영상 대화 추가 — chat.py /api/claude/status·login, combine.py /api/groupchat, ClaudeStatus.tsx, Sidebar.tsx, Library.tsx(AskPage·ChatButton), Combined.tsx(g 대화), Chat.tsx 머리 표시
 - 2026-10-31 앱 창이 옛 화면을 캐시하던 문제: index.html에 Cache-Control: no-cache 추가(backend/app/main.py) — 새 빌드 후에도 앱 창이 옛 JS를 계속 씀. 이번 1회는 data/webview/EBWebView/Default/Cache 삭제로 풀었고, 이후 빌드는 헤더로 자동 갱신.

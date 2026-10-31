@@ -181,7 +181,8 @@ def chat(cid: str, body: Ask):
     hist = "".join(f"\n{'사용자' if m['role'] == 'user' else '답변'}: {m['text']}" for m in doc["messages"][-2 * TURNS:])
     summ = "\n\n통합 요약:\n" + "\n".join([f"총평: {doc['overview']}", *("공통: " + t for t in doc["common"]),
                       *(f"노트 {d['note']}만의 점: {p}" for d in doc["differences"] for p in d["points"]), f"결론: {doc['conclusion']}"]) if doc.get("overview") else ""
-    head = CHAT_PROMPT if body.mode != "local_strict" else CHAT_PROMPT.replace(OPEN_RULE, STRICT_RULE)
+    from app.chat import AUTO_RULE
+    head = CHAT_PROMPT.replace(OPEN_RULE, {"local_strict": STRICT_RULE, "auto": AUTO_RULE.replace("영상(대본·요약)", "노트")}.get(body.mode, OPEN_RULE))
     prompt = (head + _src(notes) + summ
               + ("\n\n이전 대화:" + hist if hist else "") + f"\n\n사용자 질문: {q}\n답변:")
 
@@ -199,4 +200,4 @@ def chat(cid: str, body: Ask):
         return MARK.sub(sub, text).strip(), refs
 
     save = lambda: f.write_text(json.dumps(doc, ensure_ascii=False, indent=1), encoding="utf-8")
-    return _sse(prompt, doc, q, fix, save, body.mode)
+    return _sse(prompt, doc, q, fix, save, body.mode, doc.get("title", ""))

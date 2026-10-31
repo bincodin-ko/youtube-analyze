@@ -17,15 +17,51 @@ CHAT_PROMPT = """너는 아래 유튜브 영상의 요약과 대본을 바탕으
 규칙: 한국어로, 간결하게(핵심부터 3~6문장 또는 짧은 목록). 영상 내용은 대본을 우선 근거로 삼고, 사실 주장마다 근거 대본 줄의 인덱스를 문장 끝에 [12] 형태로 붙인다(여러 개면 [3][7], 실제 존재하는 번호만, 시간 표기 금지). 영상에 없는 배경지식·의견·응용 질문은 네 일반 지식으로 답하되 그 문장 앞에 (일반 지식)이라고 붙여 영상 내용과 구분한다. 이전 대화가 있으면 이어서 답한다. 마크다운 제목·코드펜스는 쓰지 않는다.
 """
 # 채팅 모드: local_strict(기본, 로컬·영상 안만) / local_open(로컬·영상 밖도) / claude(Claude·영상 밖도)
-MODES = ("local_strict", "local_open", "claude")
+# auto(자동 · 로컬+Claude): 로컬이 영상 안 부분을 답하고, 영상 밖 부분은 표시만 → 그 부분만 Claude가 이어 답함
+MODES = ("local_strict", "local_open", "claude", "auto")
 OPEN_RULE = "영상에 없는 배경지식·의견·응용 질문은 네 일반 지식으로 답하되 그 문장 앞에 (일반 지식)이라고 붙여 영상 내용과 구분한다."
 STRICT_RULE = "영상(대본·요약)에 없는 내용은 지어내지 말고 \"영상에서 다루지 않은 내용이에요\"라고만 답한다. 일반 지식으로 보충하지 않는다."
+AUTO_RULE = ("영상(대본·요약)에 있는 내용만 답한다. 질문 중 영상에 없는 부분은 직접 답하지 말고, 답 맨 끝 줄에 "
+             "[[영상 밖: 영상을 안 본 사람도 알아듣게 필요한 맥락(무엇에 관한 것인지)을 넣은 한두 문장 질문]] 형식으로만 적는다. 질문 전체가 영상에 없으면 그 한 줄만 출력한다. "
+             "영상 밖 부분이 없으면 그 줄을 쓰지 않는다.")
+OUTSIDE = re.compile(r"\[\[\s*영상 밖\s*:\s*(.+?)\]\]", re.S)
 OLLAMA_MODEL = lambda: os.environ.get("VN_OLLAMA_MODEL", "gemma4:12b")
 
 
 def rule(prompt, mode):
     """모드가 local_strict면 '일반 지식' 규칙을 '영상 안만' 규칙으로 바꾼다."""
-    return prompt.replace(OPEN_RULE, STRICT_RULE) if mode == "local_strict" else prompt
+    return prompt.replace(OPEN_RULE, {"local_strict": STRICT_RULE, "auto": AUTO_RULE}.get(mode, OPEN_RULE))
+
+
+def _stream_auto(prompt, title):
+    """자동: 로컬 답을 흘려보내되 [[영상 밖: …]] 표시는 숨기고, 그 질문만 Claude에게 보내 이어 붙인다.
+    Claude에는 영상 제목과 그 한 문장 질문만 보낸다(대본은 PC 밖으로 안 나감)."""
+    text, sent = "", 0
+    for t in _stream_ollama(prompt):
+        text += t
+        cut = text.find("[[")
+        safe = text if cut < 0 else text[:cut]
+        if len(safe) > sent: yield safe[sent:]; sent = len(safe)
+    m = OUTSIDE.search(text)
+    if not m: return
+    q2 = m.group(1).strip()
+    before = text[:m.start()]
+    head = "\n" * max(0, 2 - (len(before) - len(before.rstrip("\n")))) if before.strip() else ""  # 로컬 답과 빈 줄 하나
+    # 맥락: 로컬 답의 첫 문장만(근거 번호 빼고 200자 이내). 대본·요약 전체는 보내지 않는다
+    ctx = re.split(r"(?<=[.!?다요])\s", re.sub(r"\s*\[\d{1,5}\]", "", before).strip(), maxsplit=1)[0][:200]
+    p2 = (f"아래는 「{title}」 영상을 본 사용자의 질문 중 영상에서 다루지 않은 부분이다."
+          + (f" 영상에서 확인된 내용: {ctx} 이 내용을 사실로 받아들이고, 그 대상을 모른다는 말 없이 답하라." if ctx else "")
+          + " 네 일반 지식으로 한국어로 간결하게(3~5문장) 답하라. 마크다운 제목·코드펜스를 쓰지 말고, 숫자를 대괄호로 감싸지 마라."
+          + f"\n\n질문: {q2}\n답변:")
+    try:
+        first = True
+        for t in _stream_claude(p2):
+            if first: yield head + "(일반 지식 · Claude) "; first = False
+            yield t
+    except (RuntimeError, OSError) as e:
+        yield head + f"(영상 밖 질문 「{q2}」은 Claude가 답해요. 입력창 설정에서 Claude를 연결해 주세요. — {str(e)[:120]})"
+
+
 SUG_PROMPT = """아래는 유튜브 영상 대본이다(한 줄 `[인덱스 mm:ss] 텍스트`). 시청자가 이 영상에 대해 물어볼 만한 구체적인 한국어 질문 3개를 만들어라. 각 질문은 30자 이내, 서로 다른 주제, 대본에서 답이 나오는 것만.
 JSON 객체 하나만 출력(설명·코드펜스 금지): {"questions":["...","...","..."]}
 
@@ -194,14 +230,14 @@ def ask(nid: str, body: Ask):
     hist = "".join(f"\n{'사용자' if m['role'] == 'user' else '답변'}: {m['text']}" for m in d["messages"][-2 * TURNS:])
     summ = "\n요약:\n" + ai.report_text(n["report"]) + "\n" if n.get("report") else ""
     prompt = ai._kind(n, rule(CHAT_PROMPT, body.mode)) + summ + "\n대본:\n" + tr + ("\n\n이전 대화:" + hist if hist else "") + f"\n\n사용자 질문: {q}\n답변:"
-    return _sse(prompt, d, q, lambda t: clean(t, len(n["transcript"])), lambda: _save(nid, d), body.mode)
+    return _sse(prompt, d, q, lambda t: clean(t, len(n["transcript"])), lambda: _save(nid, d), body.mode, n.get("title") or "")
 
 
-def _sse(prompt, d, q, fix, save, mode="local_strict"):
+def _sse(prompt, d, q, fix, save, mode="local_strict", title=""):
     """모드대로 Claude 또는 로컬(Ollama) 스트리밍 → SSE. 다른 쪽으로 몰래 넘어가지 않는다.
     끝나면 fix(text)->(text, refs)로 정리해 d["messages"]에 붙이고 save()."""
     if mode not in MODES: raise HTTPException(400, f"모드는 {', '.join(MODES)} 중 하나")
-    stream = _stream_claude if mode == "claude" else _stream_ollama
+    stream = _stream_claude if mode == "claude" else (lambda p: _stream_auto(p, title)) if mode == "auto" else _stream_ollama
     def gen():
         sse = lambda o: f"data: {json.dumps(o, ensure_ascii=False)}\n\n"
         text = ""
