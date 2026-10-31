@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowUp, AtSign, Check, Clock, Copy, Globe, Paperclip, Sparkles } from 'lucide-react'
 import { fmtTime, MOCK, type Note } from '../api'
-import { ModeNote, ModePicker, useChatMode, type ChatMode } from './ClaudeStatus'
+import { ModeNote, ModePicker, useChatMode, useClaudeLabel, type ChatMode } from './ClaudeStatus'
 
-export type Msg = { role: 'user' | 'assistant'; text: string; err?: boolean }
+export type Msg = { role: 'user' | 'assistant'; text: string; err?: boolean; pending?: boolean } // pending: 서버가 아직 답을 만드는 중(나갔다 와도 이어짐)
 
 // 채팅 한 개 복사(클립보드 API가 막히면 예전 방식으로)
 function CopyBtn({ text, className = '' }: { text: string; className?: string }) {
@@ -23,7 +23,22 @@ function CopyBtn({ text, className = '' }: { text: string; className?: string })
 }
 
 // 답 본문의 [n]을 보라 작은 버튼으로. 대본 범위 밖 번호는 숨김
+// 자동 모드 답의 "(Claude) " 뒤(예전 기록은 "(일반 지식 · Claude) ")를 로컬 답과 나눔
+export function splitClaude(text: string): [string, string | null] {
+  const m = text.match(/\n*\((?:일반 지식 · )?Claude\) /)
+  return m && m.index !== undefined ? [text.slice(0, m.index), text.slice(m.index + m[0].length)] : [text, null]
+}
+
+// 자동 모드 답의 "(Claude)" 표시: 설정에서 끄면 글자만 빼고 내용은 그대로 이어 보여 줌
+export function withClaudeLabel(text: string, show: boolean) {
+  const [local, claude] = splitClaude(text)
+  if (claude === null) return text
+  return (local.trim() ? local.replace(/\s+$/, '') + '\n\n' : '') + (show ? '(Claude) ' : '') + claude
+}
+
 function Answer({ text, tr, seek, time }: { text: string; tr: Note['transcript']; seek: (t: number) => void; time: boolean }) {
+  const [showLabel] = useClaudeLabel()
+  text = withClaudeLabel(text, showLabel)
   if (!time) return <p className="whitespace-pre-wrap break-words text-[15px] leading-[1.75]">{text.replace(/ ?\[\d{1,5}\]/g, '')}</p> // 끄면 [n]을 지우고 앞 공백도 정리
   return (
     <p className="whitespace-pre-wrap break-words text-[15px] leading-[1.75]">
@@ -96,6 +111,12 @@ export default function Chat({ note, seek, quote }: { note: Note; seek: (t: numb
     }).catch((e) => setSugErr(e.message))
   }, [note.id, ready])
   useEffect(() => { box.current?.scrollTo({ top: box.current.scrollHeight }) }, [msgs])
+  // 다시 들어왔을 때 답이 아직 만드는 중이면 3초마다 불러와 채움
+  useEffect(() => {
+    if (busy || !msgs.some((m) => m.pending)) return
+    const t = setTimeout(() => { fetch(`/api/notes/${note.id}/chat`).then((r) => r.json()).then((d) => setMsgs(d.messages)).catch(() => {}) }, 3000)
+    return () => clearTimeout(t)
+  }, [msgs, busy, note.id])
   // 본문에서 고른 글을 인용으로 입력창에 넣기
   useEffect(() => {
     if (!quote) return

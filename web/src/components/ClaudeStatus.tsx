@@ -11,7 +11,7 @@ export const MODE_LABEL: Record<ChatMode, string> = { auto: '자동 · 로컬+Cl
 // 입력창 버튼용 짧은 이름(좁은 칸에서 줄바꿈 안 되게)
 const MODE_SHORT: Record<ChatMode, string> = { auto: '자동', local_strict: '로컬·영상 안', local_open: '로컬·영상 밖도', claude: 'Claude' }
 const MODE_DESC: Record<ChatMode, string> = {
-  auto: '영상에 있는 건 로컬 모델이 답하고, 영상에 없는 부분만 Claude가 이어서 (일반 지식 · Claude)로 답해요. Claude에는 그 질문, 영상 제목, 로컬 답 첫 문장만 보내요(대본은 안 보내요).',
+  auto: '영상에 있는 건 로컬 모델이 답하고, 영상에 없는 부분만 Claude가 이어서 (Claude) 표시를 붙여 답해요. Claude에는 그 질문, 영상 제목, 로컬 답 첫 문장만 보내요(대본은 안 보내요).',
   local_strict: '이 PC의 로컬 모델이 영상 내용으로만 답해요. 영상에 없는 건 없다고 해요. 질문이 PC 밖으로 나가지 않아요.',
   local_open: '로컬 모델이 영상에 없는 것도 일반 지식으로 답해요((일반 지식) 표시). 질문이 PC 밖으로 나가지 않아요.',
   claude: '내 Claude 구독 계정으로 답해요. 영상에 없는 것도 (일반 지식)으로 표시해 답해요. 질문이 Anthropic으로 보내져요.',
@@ -26,6 +26,15 @@ export function useChatMode(): [ChatMode, (m: ChatMode) => void] {
   const [m, setM] = useState(mode)
   useEffect(() => { modeSubs.add(setM); return () => { modeSubs.delete(setM) } }, [])
   return [m, (x) => { mode = x; try { localStorage.setItem(KEY, x) } catch { /* 이번 화면만 */ } modeSubs.forEach((f) => f(x)) }]
+}
+
+// ---- 답의 "(Claude)" 표시 보이기/숨기기(모든 채팅 공통, 이 브라우저에 기억) ----
+let label = (() => { try { return localStorage.getItem('claudeLabel') !== '0' } catch { return true } })()
+const labelSubs = new Set<(b: boolean) => void>()
+export function useClaudeLabel(): [boolean, (b: boolean) => void] {
+  const [b, setB] = useState(label)
+  useEffect(() => { labelSubs.add(setB); return () => { labelSubs.delete(setB) } }, [])
+  return [b, (x) => { label = x; try { localStorage.setItem('claudeLabel', x ? '1' : '0') } catch { /* 이번 화면만 */ } labelSubs.forEach((f) => f(x)) }]
 }
 
 // ---- Claude 연결 상태·로컬 모델 정보 ----
@@ -52,6 +61,7 @@ const PLAN: Record<string, string> = { max: 'Max', pro: 'Pro', team: 'Team', ent
 // 입력창 아래 버튼 + 위로 열리는 메뉴
 export function ModePicker() {
   const [m, setM] = useChatMode()
+  const [showLabel, setShowLabel] = useClaudeLabel()
   const { claude: c, models: md } = useInfo()
   const [open, setOpen] = useState(false)
   const [wait, setWait] = useState(false)
@@ -102,6 +112,10 @@ export function ModePicker() {
               </button>
             )
           })}
+          <label className="mt-1 flex items-center gap-2 rounded-lg px-2 py-2 hover:bg-subtle cursor-pointer">
+            <input type="checkbox" checked={showLabel} onChange={(e) => setShowLabel(e.target.checked)} className="size-4" />
+            답에 <b className="font-semibold">(Claude)</b> 표시 보이기<span className="ml-auto text-[11px] text-muted">끄면 글자만 숨김</span>
+          </label>
           <div className="mt-1 border-t border-line px-2 pt-2 pb-1 space-y-1.5">
             <p className="flex items-center gap-1.5"><Cpu size={13} />로컬 모델 <b className="ml-auto font-semibold">{local}</b></p>
             {md?.local_ready === false && <p className="text-red-500 leading-snug">아직 설치되지 않았어요. 받기 전에는 로컬 모드가 답하지 못해요.</p>}

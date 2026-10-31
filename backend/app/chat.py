@@ -17,36 +17,57 @@ CHAT_PROMPT = """너는 아래 유튜브 영상의 요약과 대본을 바탕으
 규칙: 한국어로, 간결하게(핵심부터 3~6문장 또는 짧은 목록). 영상 내용은 대본을 우선 근거로 삼고, 사실 주장마다 근거 대본 줄의 인덱스를 문장 끝에 [12] 형태로 붙인다(여러 개면 [3][7], 실제 존재하는 번호만, 시간 표기 금지). 영상에 없는 배경지식·의견·응용 질문은 네 일반 지식으로 답하되 그 문장 앞에 (일반 지식)이라고 붙여 영상 내용과 구분한다. 이전 대화가 있으면 이어서 답한다. 마크다운 제목·코드펜스는 쓰지 않는다.
 """
 # 채팅 모드: local_strict(기본, 로컬·영상 안만) / local_open(로컬·영상 밖도) / claude(Claude·영상 밖도)
-# auto(자동 · 로컬+Claude): 로컬이 영상 안 부분을 답하고, 영상 밖 부분은 표시만 → 그 부분만 Claude가 이어 답함
+# auto(자동 · 로컬+Claude): 질문을 영상 안/밖으로 나눠 안은 로컬, 밖은 Claude가 답함(_stream_auto)
 MODES = ("local_strict", "local_open", "claude", "auto")
 OPEN_RULE = "영상에 없는 배경지식·의견·응용 질문은 네 일반 지식으로 답하되 그 문장 앞에 (일반 지식)이라고 붙여 영상 내용과 구분한다."
 STRICT_RULE = "영상(대본·요약)에 없는 내용은 지어내지 말고 \"영상에서 다루지 않은 내용이에요\"라고만 답한다. 일반 지식으로 보충하지 않는다."
-AUTO_RULE = ("영상(대본·요약)에 있는 내용만 답한다. 질문 중 영상에 없는 부분은 직접 답하지 말고, 답 맨 끝 줄에 "
-             "[[영상 밖: 영상을 안 본 사람도 알아듣게 필요한 맥락(무엇에 관한 것인지)을 넣은 한두 문장 질문]] 형식으로만 적는다. 질문 전체가 영상에 없으면 그 한 줄만 출력한다. "
-             "영상 밖 부분이 없으면 그 줄을 쓰지 않는다.")
-OUTSIDE = re.compile(r"\[\[\s*영상 밖\s*:\s*(.+?)\]\]", re.S)
 OLLAMA_MODEL = lambda: os.environ.get("VN_OLLAMA_MODEL", "gemma4:12b")
 
 
 def rule(prompt, mode):
     """모드가 local_strict면 '일반 지식' 규칙을 '영상 안만' 규칙으로 바꾼다."""
-    return prompt.replace(OPEN_RULE, {"local_strict": STRICT_RULE, "auto": AUTO_RULE}.get(mode, OPEN_RULE))
+    return prompt.replace(OPEN_RULE, STRICT_RULE) if mode == "local_strict" else prompt
 
 
-def _stream_auto(prompt, title):
-    """자동: 로컬 답을 흘려보내되 [[영상 밖: …]] 표시는 숨기고, 그 질문만 Claude에게 보내 이어 붙인다.
-    Claude에는 영상 제목과 그 한 문장 질문만 보낸다(대본은 PC 밖으로 안 나감)."""
-    text, sent = "", 0
-    for t in _stream_ollama(prompt):
-        text += t
-        cut = text.find("[[")
-        safe = text if cut < 0 else text[:cut]
-        if len(safe) > sent: yield safe[sent:]; sent = len(safe)
-    m = OUTSIDE.search(text)
-    if not m: return
-    q2 = m.group(1).strip()
-    before = text[:m.start()]
-    head = "\n" * max(0, 2 - (len(before) - len(before.rstrip("\n")))) if before.strip() else ""  # 로컬 답과 빈 줄 하나
+SPLIT_PROMPT = """아래 「{title}」의 요약을 보고, 사용자 질문을 두 부분으로 나눠라.
+- inside: 요약(자료)에서 답할 수 있는 부분을 질문 형태로. 없으면 빈 문자열.
+- outside: 사용자가 실제로 물었는데 자료에 없는 부분(다른 도구·비교·추천·배경지식·최신 정보 등)만, 자료를 안 본 사람도 알아듣게 무엇에 관한 것인지 맥락을 넣은 질문으로. 없으면 빈 문자열.
+질문이 자료만으로 답해지면 outside는 반드시 빈 문자열이다. 사용자가 묻지 않은 내용을 덧붙이거나 질문을 넓히지 마라.
+이전에 같은 질문을 했더라도 이번 질문 그대로 다시 나눠라. JSON 객체 하나만 출력: {{"inside":"...","outside":"..."}}
+
+요약:
+{summ}
+
+사용자 질문: {q}"""
+
+
+def _split(q, title, summ):
+    """자동 모드: 질문을 자료 안/밖으로 나눈다(로컬, 생각 끔, JSON). 실패하면 (q, "")."""
+    body = json.dumps({"model": OLLAMA_MODEL(), "stream": False, "think": False, "format": "json", "options": {"num_ctx": 8192},
+                       "messages": [{"role": "user", "content": SPLIT_PROMPT.format(title=title, summ=summ[:6000], q=q)}]}).encode()
+    try:
+        with urllib.request.urlopen(urllib.request.Request(ai.OLLAMA_URL, body, {"Content-Type": "application/json"}), timeout=120) as r:
+            o = json.loads(json.load(r)["message"]["content"])
+        return str(o.get("inside") or "").strip(), str(o.get("outside") or "").strip()
+    except (OSError, ValueError, KeyError) as e:
+        print(f"[chat] 질문 나누기 실패: {e}")
+        return q, ""
+
+
+def _stream_auto(make, q, title, summ):
+    """자동: ①질문을 자료 안/밖으로 먼저 나누고(_split) ②안 부분은 로컬이 자료로만 답하고 ③밖 부분은 Claude가 이어 답한다.
+    (예전엔 로컬이 답을 쓰다 [[영상 밖]] 표시를 붙여야 Claude가 불렸는데, 같은 질문에도 빠뜨리는 일이 있어 나누는 단계를 따로 둠)
+    Claude에는 영상 제목·밖 질문·로컬 답 첫 문장만 보낸다(대본은 PC 밖으로 안 나감)."""
+    inside, q2 = _split(q, title, summ)
+    print(f"[chat] 자동 나누기: 안={inside!r} 밖={q2!r}")
+    text = ""
+    if inside or not q2:
+        for t in _stream_ollama(make(inside or q)):
+            text += t
+            yield t
+    if not q2: return
+    before = text or summ  # 로컬 답이 없으면(전부 영상 밖) 요약 첫 문장을 맥락으로
+    head = "\n" * max(0, 2 - (len(text) - len(text.rstrip("\n")))) if text.strip() else ""  # 로컬 답과 빈 줄 하나
     # 맥락: 로컬 답의 첫 문장만(근거 번호 빼고 200자 이내). 대본·요약 전체는 보내지 않는다
     ctx = re.split(r"(?<=[.!?다요])\s", re.sub(r"\s*\[\d{1,5}\]", "", before).strip(), maxsplit=1)[0][:200]
     p2 = (f"아래는 「{title}」 영상을 본 사용자의 질문 중 영상에서 다루지 않은 부분이다."
@@ -56,7 +77,7 @@ def _stream_auto(prompt, title):
     try:
         first = True
         for t in _stream_claude(p2):
-            if first: yield head + "(일반 지식 · Claude) "; first = False
+            if first: yield head + "(Claude) "; first = False  # 화면은 이 표시부터 끝까지를 따로 접는 Claude 칸으로 보여 줌
             yield t
     except (RuntimeError, OSError) as e:
         yield head + f"(영상 밖 질문 「{q2}」은 Claude가 답해요. 입력창 설정에서 Claude를 연결해 주세요. — {str(e)[:120]})"
@@ -128,9 +149,9 @@ def _ollama_text(prompt):
 
 
 def _stream_ollama(prompt):
-    """Ollama 로컬 모델 스트리밍: 글자 조각을 yield."""
+    """Ollama 로컬 모델 스트리밍: 글자 조각을 yield. think=False: gemma4가 답 전에 보이지 않는 생각을 1~2천 토큰 써서 1분 넘게 걸리던 것을 끔(실측 70초→11초)."""
     model = OLLAMA_MODEL()
-    body = json.dumps({"model": model, "stream": True, "options": {"num_ctx": 32768}, "messages": [{"role": "user", "content": prompt}]}).encode()
+    body = json.dumps({"model": model, "stream": True, "think": False, "options": {"num_ctx": 32768}, "messages": [{"role": "user", "content": prompt}]}).encode()
     try:
         with urllib.request.urlopen(urllib.request.Request(ai.OLLAMA_URL, body, {"Content-Type": "application/json"}), timeout=300) as r:
             for line in r:
@@ -205,6 +226,7 @@ def chat_models():
 @router.get("/api/notes/{nid}/chat")
 def get_chat(nid: str):
     d = _load(nid)
+    if settle(d): _save(nid, d)
     if not d["suggestions"]:  # 처음 한 번만 만들어 저장
         tr, note = _tr(nid)
         try:
@@ -227,29 +249,74 @@ def ask(nid: str, body: Ask):
     if not q: raise HTTPException(400, "질문이 비었어요")
     tr, n = _tr(nid)
     d = _load(nid)
-    hist = "".join(f"\n{'사용자' if m['role'] == 'user' else '답변'}: {m['text']}" for m in d["messages"][-2 * TURNS:])
+    if any(m.get("pending") and m.get("id") in RUNNING for m in d["messages"]): raise HTTPException(409, "앞 질문의 답을 아직 만드는 중이에요")
+    settle(d)
+    hist = history(d)
     summ = "\n요약:\n" + ai.report_text(n["report"]) + "\n" if n.get("report") else ""
-    prompt = ai._kind(n, rule(CHAT_PROMPT, body.mode)) + summ + "\n대본:\n" + tr + ("\n\n이전 대화:" + hist if hist else "") + f"\n\n사용자 질문: {q}\n답변:"
-    return _sse(prompt, d, q, lambda t: clean(t, len(n["transcript"])), lambda: _save(nid, d), body.mode, n.get("title") or "")
+    # 자동 모드는 로컬이 자료 안 부분만 답하므로 '영상 안만' 규칙으로, 나눈 질문을 넣어 만든다
+    make = lambda qq: ai._kind(n, rule(CHAT_PROMPT, "local_strict" if body.mode == "auto" else body.mode)) + summ + "\n대본:\n" + tr + ("\n\n이전 대화:" + hist + NO_REPEAT if hist else "") + f"\n\n사용자 질문: {qq}\n답변:"
+    prompt = make if body.mode == "auto" else make(q)
+    return _sse(prompt, d, q, lambda t: clean(t, len(n["transcript"])), lambda: _save(nid, d), body.mode, n.get("title") or "",
+                (q, ai.report_text(n["report"]) if n.get("report") else tr[:6000]))
 
 
-def _sse(prompt, d, q, fix, save, mode="local_strict", title=""):
-    """모드대로 Claude 또는 로컬(Ollama) 스트리밍 → SSE. 다른 쪽으로 몰래 넘어가지 않는다.
-    끝나면 fix(text)->(text, refs)로 정리해 d["messages"]에 붙이고 save()."""
+RUNNING = set()  # 지금 서버 뒤에서 답을 만드는 중인 메시지 id
+
+
+def settle(d):
+    """앱이 다시 켜져서 끊긴 '작성 중' 답은 오류로 바꾼다. 바뀌었으면 True."""
+    ch = False
+    for m in d.get("messages", []):
+        if m.get("pending") and m.get("id") not in RUNNING:
+            m.pop("pending"); m["err"] = True; m["text"] = m.get("text") or "앱이 다시 켜지는 바람에 답을 끝까지 받지 못했어요. 다시 물어봐 주세요."; ch = True
+    return ch
+
+
+# 이전 대화가 있을 때 붙이는 규칙: 이미 한 설명을 다음 답에서 되풀이하지 않게
+NO_REPEAT = ("\n\n(규칙) 위 이전 대화에서 이미 답한 내용은 다시 설명하지 마라. 필요하면 \"앞에서 말씀드린 대로\" 한 구절로만 짚고, "
+             "이번 질문에서 새로 묻는 부분만 답하라. 같은 질문을 다시 하면 앞 답을 한두 문장으로만 요약하라.")
+
+
+def history(d):
+    return "".join(f"\n{'사용자' if m['role'] == 'user' else '답변'}: {m['text']}" for m in d["messages"][-2 * TURNS:] if not m.get("pending") and not m.get("err"))
+
+
+def _sse(prompt, d, q, fix, save, mode="local_strict", title="", auto=None):
+    """모드대로 Claude 또는 로컬(Ollama)로 답한다. 다른 쪽으로 몰래 넘어가지 않는다.
+    질문은 바로 저장하고, 답은 화면 연결과 상관없이 뒤 스레드가 끝까지 만들어 저장한다(나갔다 와도 남음).
+    SSE는 그 진행을 흘려보내기만 한다."""
+    import queue, threading, time
     if mode not in MODES: raise HTTPException(400, f"모드는 {', '.join(MODES)} 중 하나")
-    stream = _stream_claude if mode == "claude" else (lambda p: _stream_auto(p, title)) if mode == "auto" else _stream_ollama
-    def gen():
-        sse = lambda o: f"data: {json.dumps(o, ensure_ascii=False)}\n\n"
+    # auto면 prompt는 make(질문)->로컬 프롬프트 함수, auto=(원래 질문, 요약)
+    stream = _stream_claude if mode == "claude" else (lambda p: _stream_auto(p, auto[0], title, auto[1])) if mode == "auto" else _stream_ollama
+    mid = f"m{int(time.time() * 1000)}"
+    a = {"role": "assistant", "text": "", "mode": mode, "id": mid, "pending": True}
+    d["messages"] += [{"role": "user", "text": q}, a]
+    RUNNING.add(mid); save()
+    qu = queue.Queue()
+
+    def work():
         text = ""
         try:
             for t in stream(prompt):
                 text += t
-                yield sse({"t": t})
+                qu.put({"t": t})
             text, refs = fix(text)
-            d["messages"] += [{"role": "user", "text": q}, {"role": "assistant", "text": text, "refs": refs, "mode": mode}]
-            save()
-            yield sse({"done": True, "text": text, "refs": refs})
+            a.update(text=text, refs=refs)
+            qu.put({"done": True, "text": text, "refs": refs})
         except Exception as e:
-            yield sse({"error": str(e)})
+            a.update(text=str(e), err=True)
+            qu.put({"error": str(e)})
+        finally:
+            a.pop("pending", None); RUNNING.discard(mid)
+            try: save()
+            except OSError: pass
+            qu.put(None)
+    threading.Thread(target=work, daemon=True).start()
+
+    def gen():
+        sse = lambda o: f"data: {json.dumps(o, ensure_ascii=False)}\n\n"
+        while (o := qu.get()) is not None:
+            yield sse(o)
 
     return StreamingResponse(gen(), media_type="text/event-stream", headers={"Cache-Control": "no-cache"})

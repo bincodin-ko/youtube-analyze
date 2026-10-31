@@ -114,7 +114,11 @@ def list_combined(collection_id: int | None = None):
 
 @router.get("/api/combined/{cid}")
 def get_combined(cid: str):
-    return json.loads(_file(cid).read_text(encoding="utf-8"))
+    from app.chat import settle
+    f = _file(cid)
+    doc = json.loads(f.read_text(encoding="utf-8"))
+    if settle(doc): f.write_text(json.dumps(doc, ensure_ascii=False, indent=1), encoding="utf-8")
+    return doc
 
 
 @router.delete("/api/combined/{cid}")
@@ -169,7 +173,7 @@ class Ask(BaseModel):
 
 @router.post("/api/combined/{cid}/chat")
 def chat(cid: str, body: Ask):
-    from app.chat import TURNS, _sse
+    from app.chat import NO_REPEAT, RUNNING, _sse, history, settle
     q = body.q.strip()
     if not q: raise HTTPException(400, "질문이 비었어요")
     f = _file(cid)
@@ -178,13 +182,16 @@ def chat(cid: str, body: Ask):
     for n, x in zip(notes, doc["notes"]):
         if n: n["title"] = x["title"]
     doc.setdefault("messages", [])
-    hist = "".join(f"\n{'사용자' if m['role'] == 'user' else '답변'}: {m['text']}" for m in doc["messages"][-2 * TURNS:])
+    if any(m.get("pending") and m.get("id") in RUNNING for m in doc["messages"]): raise HTTPException(409, "앞 질문의 답을 아직 만드는 중이에요")
+    settle(doc)
+    hist = history(doc)
     summ = "\n\n통합 요약:\n" + "\n".join([f"총평: {doc['overview']}", *("공통: " + t for t in doc["common"]),
                       *(f"노트 {d['note']}만의 점: {p}" for d in doc["differences"] for p in d["points"]), f"결론: {doc['conclusion']}"]) if doc.get("overview") else ""
-    from app.chat import AUTO_RULE
-    head = CHAT_PROMPT.replace(OPEN_RULE, {"local_strict": STRICT_RULE, "auto": AUTO_RULE.replace("영상(대본·요약)", "노트")}.get(body.mode, OPEN_RULE))
-    prompt = (head + _src(notes) + summ
-              + ("\n\n이전 대화:" + hist if hist else "") + f"\n\n사용자 질문: {q}\n답변:")
+    # 자동 모드: 로컬은 노트 안 부분만('안만' 규칙), 밖 부분은 chat._stream_auto가 나눠서 Claude에게
+    head = CHAT_PROMPT.replace(OPEN_RULE, STRICT_RULE) if body.mode in ("local_strict", "auto") else CHAT_PROMPT
+    src = _src(notes)
+    make = lambda qq: (head + src + summ + ("\n\n이전 대화:" + hist + NO_REPEAT if hist else "") + f"\n\n사용자 질문: {qq}\n답변:")
+    prompt = make if body.mode == "auto" else make(q)
 
     def fix(text):  # 없는 [노트:줄]은 지우고, 있는 건 starts에 시각 기록(화면 링크용)
         refs = []
@@ -200,4 +207,4 @@ def chat(cid: str, body: Ask):
         return MARK.sub(sub, text).strip(), refs
 
     save = lambda: f.write_text(json.dumps(doc, ensure_ascii=False, indent=1), encoding="utf-8")
-    return _sse(prompt, doc, q, fix, save, body.mode, doc.get("title", ""))
+    return _sse(prompt, doc, q, fix, save, body.mode, doc.get("title", ""), (q, (src + summ)[:6000]))

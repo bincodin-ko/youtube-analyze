@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, ArrowUp, Layers, Sparkles, Trash2 } from 'lucide-react'
-import { ModeNote, ModePicker, useChatMode } from '../components/ClaudeStatus'
+import { ModeNote, ModePicker, useChatMode, useClaudeLabel } from '../components/ClaudeStatus'
 import Sidebar, { MobileBar } from '../components/Sidebar'
-import { streamChat, type Msg } from '../components/Chat'
+import { streamChat, withClaudeLabel, type Msg } from '../components/Chat'
 import { ThemeButton } from '../components/ui'
 
 type CNote = { id: string; title: string; channel?: string; kind?: string }
@@ -154,6 +154,14 @@ function CombinedChat({ c, reload }: { c: Combined; reload: () => Promise<unknow
   const [q, setQ] = useState('')
   const [busy, setBusy] = useState(false)
   const [mode] = useChatMode()
+  const [showLabel] = useClaudeLabel()
+  useEffect(() => { if (!busy) setMsgs(c.messages ?? []) }, [c.messages]) // eslint-disable-line react-hooks/exhaustive-deps
+  // 다시 들어왔을 때 답이 아직 만드는 중이면 3초마다 불러와 채움
+  useEffect(() => {
+    if (busy || !msgs.some((m) => m.pending)) return
+    const t = setTimeout(() => { reload() }, 3000)
+    return () => clearTimeout(t)
+  }, [msgs, busy]) // eslint-disable-line react-hooks/exhaustive-deps
   const send = async () => {
     const text = q.trim()
     if (!text || busy) return
@@ -174,9 +182,9 @@ function CombinedChat({ c, reload }: { c: Combined; reload: () => Promise<unknow
       {msgs.map((m, i) => m.role === 'user' ? (
         <p key={i} className="ml-auto mt-4 w-fit max-w-[85%] whitespace-pre-wrap break-words rounded-2xl bg-subtle px-3.5 py-2 text-[15px] leading-[1.6]">{m.text}</p>
       ) : (
-        <p key={i} className={`mt-4 whitespace-pre-wrap break-words text-[15px] leading-[1.75] ${m.err ? 'text-muted' : ''}`}>
-          {m.text ? <Inline text={m.text} c={c} /> : <span className="text-muted animate-pulse">답변 작성 중…</span>}
-        </p>
+        <div key={i} className={`mt-4 whitespace-pre-wrap break-words text-[15px] leading-[1.75] ${m.err ? 'text-muted' : ''}`}>
+          {m.text ? <Inline text={withClaudeLabel(m.text, showLabel)} c={c} /> : <span className="text-muted animate-pulse">답변 작성 중…</span>}
+        </div>
       ))}
       <div className="mt-5 rounded-xl border border-line p-3">
         <textarea value={q} rows={2} onChange={(e) => setQ(e.target.value)} placeholder="이 노트들에 대해 물어보세요"
