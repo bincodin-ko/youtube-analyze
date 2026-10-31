@@ -234,7 +234,7 @@ export function AskPage() {
       <div className="max-w-[760px]">
         <h2 className="flex items-center gap-2 text-[22px] font-bold"><Sparkles size={21} className="text-link" />AI와 대화</h2>
         <ol className="mt-5 space-y-2 text-[15px] leading-[1.6]">
-          <li><b>답할 AI 고르기</b> — 채팅 입력창 아래 설정에서 골라요. 기본은 <b>로컬 · 영상 안만</b>(이 PC의 로컬 모델, 영상 내용으로만 답함). <b>로컬 · 영상 밖도</b>, <b>Claude · 영상 밖도</b>로 바꾸면 영상에 없는 것도 (일반 지식)으로 답해요. Claude 연결·끊기도 거기서 해요.</li>
+          <li><b>답할 AI 고르기</b> — 채팅 입력창 아래 설정에서 골라요. 기본은 <b>로컬 · 영상 안만</b>(이 PC의 로컬 모델, 영상 내용으로만 답함). <b>로컬 · 영상 밖도</b>, <b>Claude · 영상 밖도</b>로 바꾸면 영상에 없는 것도 일반 지식으로 답해요. Claude 연결·끊기도 거기서 해요.</li>
           <li><b>영상 하나와 대화</b> — 노트를 열면 오른쪽 <b>채팅</b> 칸에서 바로 물어봐요.</li>
           <li><b>여러 영상과 함께 대화</b> — 아래에서 노트를 1~10개 체크하고 <b>AI와 대화</b>를 누르세요. 라이브러리에서는 <b>대화할 노트 고르기</b>를 누르면 체크가 생겨요.</li>
           <li><b>통합 요약 아래에서 대화</b> — 컬렉션에서 통합 요약을 만들면 그 화면 맨 아래에서도 대화할 수 있어요.</li>

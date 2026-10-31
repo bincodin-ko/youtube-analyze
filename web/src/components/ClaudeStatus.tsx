@@ -13,8 +13,8 @@ const MODE_SHORT: Record<ChatMode, string> = { auto: '자동', local_strict: '�
 const MODE_DESC: Record<ChatMode, string> = {
   auto: '영상에 있는 건 로컬 모델이 답하고, 영상에 없는 부분만 Claude가 이어서 (Claude) 표시를 붙여 답해요. Claude에는 그 질문, 영상 제목, 로컬 답 첫 문장만 보내요(대본은 안 보내요).',
   local_strict: '이 PC의 로컬 모델이 영상 내용으로만 답해요. 영상에 없는 건 없다고 해요. 질문이 PC 밖으로 나가지 않아요.',
-  local_open: '로컬 모델이 영상에 없는 것도 일반 지식으로 답해요((일반 지식) 표시). 질문이 PC 밖으로 나가지 않아요.',
-  claude: '내 Claude 구독 계정으로 답해요. 영상에 없는 것도 (일반 지식)으로 표시해 답해요. 질문이 Anthropic으로 보내져요.',
+  local_open: '로컬 모델이 영상에 없는 것도 일반 지식으로 답해요. 질문이 PC 밖으로 나가지 않아요.',
+  claude: '내 Claude 구독 계정으로 답해요. 영상에 없는 것도 일반 지식으로 답해요. 질문이 Anthropic으로 보내져요.',
 }
 
 // ---- 모드(모든 채팅이 같은 값 사용) ----
@@ -148,5 +148,5 @@ export function ModeNote({ what = '영상' }: { what?: string }) {
   const [m] = useChatMode()
   const { models: md } = useInfo()
   const local = md?.local ?? 'gemma4:12b'
-  return <>{m === 'auto' ? `${what}에 있는 건 로컬 모델(${local}), 없는 부분은 Claude가 답해요` : m === 'claude' ? `Claude가 ${what} 밖 질문도 (일반 지식)으로 답해요` : m === 'local_open' ? `로컬 모델(${local})이 ${what} 밖 질문도 (일반 지식)으로 답해요` : `로컬 모델(${local})이 ${what} 내용으로만 답해요`}</>
+  return <>{m === 'auto' ? `${what}에 있는 건 로컬 모델(${local}), 없는 부분은 Claude가 답해요` : m === 'claude' ? `Claude가 ${what} 밖 질문도 일반 지식으로 답해요` : m === 'local_open' ? `로컬 모델(${local})이 ${what} 밖 질문도 일반 지식으로 답해요` : `로컬 모델(${local})이 ${what} 내용으로만 답해요`}</>
 }

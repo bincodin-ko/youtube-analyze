@@ -31,6 +31,7 @@ export function splitClaude(text: string): [string, string | null] {
 
 // 자동 모드 답의 "(Claude)" 표시: 설정에서 끄면 글자만 빼고 내용은 그대로 이어 보여 줌
 export function withClaudeLabel(text: string, show: boolean) {
+  text = text.replace(/\(일반 지식\)\s*/g, '') // 예전 기록의 (일반 지식) 표시 숨김
   const [local, claude] = splitClaude(text)
   if (claude === null) return text
   return (local.trim() ? local.replace(/\s+$/, '') + '\n\n' : '') + (show ? '(Claude) ' : '') + claude
