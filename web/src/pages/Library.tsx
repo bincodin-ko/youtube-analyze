@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { AudioLines, Check, FileText, Film, Folder, Layers, Loader2, MoreHorizontal, Search, Trash2, ZoomIn, ZoomOut } from 'lucide-react'
+import { AudioLines, Check, FileText, Film, Folder, Layers, Loader2, MoreHorizontal, Search, Sparkles, Trash2, ZoomIn, ZoomOut } from 'lucide-react'
 import Sidebar, { MobileBar } from '../components/Sidebar'
 import { ConfirmNote } from '../components/NoteMenu'
 import { CombinedList, listCombined, makeCombined, type CombinedItem } from './Combined'
@@ -71,7 +71,7 @@ export function NoteGrid({ notes, onMoved, sel, onSel }: { notes: NoteSummary[];
             </div>
           </Link>
           {onSel && n.status === 'done' && (  // 통합 요약용 체크
-            <button onClick={() => onSel(n.id)} title="통합 요약에 넣기" aria-pressed={sel?.has(n.id)}
+            <button onClick={() => onSel(n.id)} title="골라서 AI와 대화·통합 요약" aria-pressed={sel?.has(n.id)}
               className={`absolute left-2.5 top-2.5 grid place-items-center size-6 rounded-md border ${sel?.has(n.id) ? 'bg-accent border-accent text-[#0c0d08]' : 'bg-bg/90 border-line text-transparent hover:text-muted'}`}><Check size={15} strokeWidth={3} /></button>
           )}
           <button onClick={() => open(n.id)} title="더보기" className="absolute right-2 bottom-3 grid place-items-center size-8 rounded-md text-soft hover:bg-subtle"><MoreHorizontal size={18} /></button>
@@ -102,7 +102,31 @@ export function NoteGrid({ notes, onMoved, sel, onSel }: { notes: NoteSummary[];
   )
 }
 
-function Shell({ title, children }: { title: string; children: React.ReactNode }) {
+// 체크한 노트로 바로 AI와 대화 시작(통합 요약 없이)
+export function ChatButton({ sel, cid }: { sel: Set<string>; cid?: number }) {
+  const nav = useNavigate()
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+  const go = async () => {
+    setBusy(true); setErr('')
+    try {
+      const r = await fetch('/api/groupchat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ note_ids: [...sel], collection_id: cid ?? null }) })
+      if (!r.ok) throw new Error((await r.json().catch(() => null))?.detail || '대화를 만들지 못했어요')
+      nav(`/combined/${(await r.json()).id}`)
+    } catch (e) { setErr((e as Error).message); setBusy(false) }
+  }
+  return (
+    <>
+      <button disabled={sel.size < 1 || sel.size > 10 || busy} onClick={go}
+        className="h-9 px-4 rounded-full bg-fg text-bg font-semibold disabled:opacity-40 flex items-center gap-2">
+        <Sparkles size={15} />AI와 대화
+      </button>
+      {err && <span className="w-full text-red-500">{err}</span>}
+    </>
+  )
+}
+
+export function Shell({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen">
       <Sidebar />
@@ -118,12 +142,31 @@ function Shell({ title, children }: { title: string; children: React.ReactNode }
 export default function Library() {
   const [k, setK] = useState(0)
   const { data, err } = usePoll(async () => ({ notes: await listNotes() }), `lib${k}`)
+  const [sel, setSel] = useState<Set<string>>(new Set())
+  const [picking, setPicking] = useState(false) // 「대화할 노트 고르기」를 눌렀을 때만 체크 표시
+  const toggle = (nid: string) => setSel((s) => { const x = new Set(s); if (!x.delete(nid)) x.add(nid); return x })
+  const stop = () => { setPicking(false); setSel(new Set()) }
   return (
     <Shell title="라이브러리">
       <h2 className="text-[18px] font-bold mb-4">내 노트</h2>
       {err && <p className="text-muted text-[14px]">{err}</p>}
       {data?.notes.length === 0 && <p className="text-muted text-[14px]">아직 노트가 없어요.</p>}
-      {data && <NoteGrid notes={data.notes} onMoved={() => setK(k + 1)} />}
+      {data && data.notes.length > 0 && !picking && (
+        <button onClick={() => setPicking(true)} className="mb-4 h-9 px-4 rounded-full border border-line hover:bg-subtle text-[14px] font-semibold flex items-center gap-2">
+          <Sparkles size={15} className="text-link" />대화할 노트 고르기
+        </button>
+      )}
+      {data && picking && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl bg-subtle px-4 py-3 text-[14px]">
+          <Sparkles size={17} strokeWidth={1.6} className="shrink-0 text-link" />
+          <span className="text-soft">{sel.size ? `노트 ${sel.size}개 선택됨` : '카드 왼쪽 위 체크로 함께 대화할 노트를 1~10개 고르세요'}</span>
+          <span className="ml-auto" />
+          <button onClick={stop} className="h-9 px-4 rounded-full border border-line hover:bg-bg">취소</button>
+          <ChatButton sel={sel} />
+          {sel.size > 10 && <span className="w-full text-red-500">최대 10개까지 고를 수 있어요</span>}
+        </div>
+      )}
+      {data && <NoteGrid notes={data.notes} onMoved={() => setK(k + 1)} sel={sel} onSel={picking ? toggle : undefined} />}
     </Shell>
   )
 }
@@ -159,12 +202,13 @@ export function CollectionPage() {
       )}
       <CombinedList items={combos} />
       {data?.notes.length === 0 && <p className="text-muted text-[14px]">비어 있어요. 노트 카드의 … 메뉴에서 이 컬렉션에 넣을 수 있어요.</p>}
-      {data && done >= 2 && (
+      {data && done >= 1 && (
         <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl bg-subtle px-4 py-3 text-[14px]">
           <Layers size={17} strokeWidth={1.6} className="shrink-0 text-soft" />
-          <span className="text-soft">{sel.size < 2 ? '카드 왼쪽 위 체크로 노트를 2~10개 고르면 하나로 합쳐 비교해 줘요' : `노트 ${sel.size}개 선택됨`}</span>
+          <span className="text-soft">{sel.size ? `노트 ${sel.size}개 선택됨` : '카드 왼쪽 위 체크로 노트를 고르면 AI와 함께 대화(1~10개)하거나 하나로 합쳐 비교(2~10개)해요'}</span>
+          <span className="ml-auto" /><ChatButton sel={sel} cid={+id} />
           <button disabled={sel.size < 2 || sel.size > 10 || mk} onClick={combine}
-            className="ml-auto h-9 px-4 rounded-full bg-accent text-[#0c0d08] font-semibold disabled:opacity-40 flex items-center gap-2">
+            className="h-9 px-4 rounded-full bg-accent text-[#0c0d08] font-semibold disabled:opacity-40 flex items-center gap-2">
             {mk && <Loader2 size={15} className="animate-spin" />}{mk ? '합치는 중… (1~2분)' : '통합 요약'}
           </button>
           {sel.size > 10 && <span className="w-full text-red-500">최대 10개까지 합칠 수 있어요</span>}
@@ -172,6 +216,55 @@ export function CollectionPage() {
         </div>
       )}
       {data && <NoteGrid notes={data.notes} onMoved={() => setK(k + 1)} sel={sel} onSel={toggle} />}
+    </Shell>
+  )
+}
+
+type GroupChat = { id: string; title: string; created_at: string; count: number; turns: number }
+
+// 사이드바 「AI와 대화」: 쓰는 법 + 지난 대화 + 노트 골라 새 대화
+export function AskPage() {
+  const { data, err } = usePoll(async () => ({ notes: (await listNotes()).filter((n) => n.status === 'done') }), 'ask')
+  const [chats, setChats] = useState<GroupChat[]>([])
+  const [sel, setSel] = useState<Set<string>>(new Set())
+  const toggle = (nid: string) => setSel((s) => { const x = new Set(s); if (!x.delete(nid)) x.add(nid); return x })
+  useEffect(() => { fetch('/api/groupchat').then((r) => r.json()).then(setChats).catch(() => {}) }, [])
+  return (
+    <Shell title="AI와 대화">
+      <div className="max-w-[760px]">
+        <h2 className="flex items-center gap-2 text-[22px] font-bold"><Sparkles size={21} className="text-link" />AI와 대화</h2>
+        <ol className="mt-5 space-y-2 text-[15px] leading-[1.6]">
+          <li><b>답할 AI 고르기</b> — 채팅 입력창 아래 설정에서 골라요. 기본은 <b>로컬 · 영상 안만</b>(이 PC의 로컬 모델, 영상 내용으로만 답함). <b>로컬 · 영상 밖도</b>, <b>Claude · 영상 밖도</b>로 바꾸면 영상에 없는 것도 (일반 지식)으로 답해요. Claude 연결·끊기도 거기서 해요.</li>
+          <li><b>영상 하나와 대화</b> — 노트를 열면 오른쪽 <b>채팅</b> 칸에서 바로 물어봐요.</li>
+          <li><b>여러 영상과 함께 대화</b> — 아래에서 노트를 1~10개 체크하고 <b>AI와 대화</b>를 누르세요. 라이브러리에서는 <b>대화할 노트 고르기</b>를 누르면 체크가 생겨요.</li>
+          <li><b>통합 요약 아래에서 대화</b> — 컬렉션에서 통합 요약을 만들면 그 화면 맨 아래에서도 대화할 수 있어요.</li>
+        </ol>
+      </div>
+      {chats.length > 0 && (
+        <div className="mt-8 max-w-[640px]">
+          <h3 className="text-[15px] font-bold mb-3">지난 대화</h3>
+          <ul className="grid gap-2">
+            {chats.map((c) => (
+              <li key={c.id}>
+                <Link to={`/combined/${c.id}`} className="flex items-center gap-3 rounded-xl border border-line px-4 py-3 hover:bg-subtle">
+                  <Sparkles size={16} strokeWidth={1.6} className="shrink-0 text-soft" />
+                  <span className="min-w-0 flex-1 text-[15px] font-semibold truncate">{c.title}</span>
+                  <span className="shrink-0 text-[13px] text-muted">노트 {c.count}개 · 질문 {c.turns}개 · {c.created_at.slice(5, 10).replace('-', '. ')}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <h3 className="mt-8 text-[15px] font-bold mb-3">새 대화: 노트 고르기</h3>
+      {err && <p className="text-muted text-[14px]">{err}</p>}
+      {data?.notes.length === 0 && <p className="text-muted text-[14px]">완성된 노트가 아직 없어요.</p>}
+      <div className="sticky top-0 z-10 mb-4 flex flex-wrap items-center gap-3 rounded-xl bg-subtle px-4 py-3 text-[14px]">
+        <span className="text-soft">{sel.size ? `노트 ${sel.size}개 선택됨` : '카드 왼쪽 위 체크로 노트를 고르세요(1~10개)'}</span>
+        <span className="ml-auto" /><ChatButton sel={sel} />
+        {sel.size > 10 && <span className="w-full text-red-500">최대 10개까지 고를 수 있어요</span>}
+      </div>
+      {data && <NoteGrid notes={data.notes} sel={sel} onSel={toggle} />}
     </Shell>
   )
 }

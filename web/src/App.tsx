@@ -3,7 +3,7 @@ import Trash from './pages/Trash'
 import Subs from './pages/Subs'
 import Home from './pages/Home'
 import New from './pages/New'
-import Library, { CollectionPage, SearchPage } from './pages/Library'
+import Library, { AskPage, CollectionPage, SearchPage } from './pages/Library'
 import NotePage from './pages/Note'
 import CombinedPage from './pages/Combined'
 import { HighlightsPage } from './components/Highlights'
@@ -21,6 +21,7 @@ export default function App() {
       <Route path="/note/:id" element={<NotePage />} />
       <Route path="/combined/:id" element={<CombinedPage />} />
       <Route path="/highlights" element={<HighlightsPage />} />
+      <Route path="/ask" element={<AskPage />} />
     </Routes>
   )
 }

@@ -812,4 +812,5 @@ def web(path: str):
     f = (DIST / path).resolve()
     if path and f.is_file() and f.is_relative_to(DIST.resolve()):
         return FileResponse(f)
-    return FileResponse(DIST / "index.html")  # SPA 라우팅
+    # SPA 라우팅. 앱 창(WebView)이 옛 index.html을 캐시해 새 빌드를 못 보는 일 방지
+    return FileResponse(DIST / "index.html", headers={"Cache-Control": "no-cache"})

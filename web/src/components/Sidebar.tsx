@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { BookOpen, ChevronDown, Folder, Highlighter, House, MoreHorizontal, PanelLeft, Pencil, Plus, Rss, Search, Trash2 } from 'lucide-react'
+import { BookOpen, ChevronDown, Folder, Highlighter, House, MoreHorizontal, PanelLeft, Pencil, Plus, Rss, Search, Sparkles, Trash2 } from 'lucide-react'
 import { collectionsChanged, createCollection, deleteCollection, listCollections, listNotes, renameCollection, type Collection, type NoteSummary } from '../api'
 import { TypeIcon } from '../pages/Home'
 import { Logo, ThemeButton } from './ui'
@@ -28,6 +28,7 @@ export default function Sidebar() {
         <LibraryTree />
         <NavLink to="/subscriptions" className={item}><Rss size={19} strokeWidth={1.6} />구독</NavLink>
         <NavLink to="/highlights" className={item}><Highlighter size={19} strokeWidth={1.6} />하이라이트</NavLink>
+        <NavLink to="/ask" className={item}><Sparkles size={19} strokeWidth={1.6} />AI와 대화</NavLink>
       </nav>
       <div className="mt-auto border-t border-line px-3 py-3">
         <ThemeButton label />

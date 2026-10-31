@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowUp, AtSign, Check, Clock, Copy, Globe, Paperclip, Sparkles } from 'lucide-react'
 import { fmtTime, MOCK, type Note } from '../api'
+import { ModeNote, ModePicker, useChatMode, type ChatMode } from './ClaudeStatus'
 
-type Msg = { role: 'user' | 'assistant'; text: string; err?: boolean }
+export type Msg = { role: 'user' | 'assistant'; text: string; err?: boolean }
 
 // 채팅 한 개 복사(클립보드 API가 막히면 예전 방식으로)
 function CopyBtn({ text, className = '' }: { text: string; className?: string }) {
@@ -47,6 +48,27 @@ export function PanelTabs({ tab, setTab }: { tab: 'chat' | 'hl'; setTab: (t: 'ch
   )
 }
 
+// 질문 보내고 SSE 답을 받아 마지막 말풍선을 고쳐 감(노트 채팅·통합 요약 채팅 공용)
+export async function streamChat(url: string, q: string, mode: ChatMode, patch: (f: (m: Msg) => Msg) => void) {
+  const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ q, mode }) })
+  if (!r.ok || !r.body) throw new Error((await r.json().catch(() => ({}))).detail || '답변을 받지 못했어요')
+  const rd = r.body.getReader(), dec = new TextDecoder()
+  let buf = ''
+  for (;;) {
+    const { done, value } = await rd.read()
+    if (done) break
+    buf += dec.decode(value, { stream: true })
+    const parts = buf.split('\n\n'); buf = parts.pop()!
+    for (const p of parts) {
+      if (!p.startsWith('data:')) continue
+      const o = JSON.parse(p.slice(5))
+      if (o.error) throw new Error(o.error)
+      if (o.done) patch((m) => ({ ...m, text: o.text }))
+      else if (o.t) patch((m) => ({ ...m, text: m.text + o.t }))
+    }
+  }
+}
+
 // 자료 종류별 말: [부르는 이름, 근거 이름]
 const WORDS: Record<string, [string, string]> = { article: ['글', '본문'], pdf: ['문서', '본문'], audio: ['음성', '대본'] }
 
@@ -56,6 +78,7 @@ export default function Chat({ note, seek, quote }: { note: Note; seek: (t: numb
   const [sug, setSug] = useState<string[]>([])
   const [msgs, setMsgs] = useState<Msg[]>([])
   const [busy, setBusy] = useState(false)
+  const [mode] = useChatMode()
   const [q, setQ] = useState('')
   const [sugErr, setSugErr] = useState('')
   const box = useRef<HTMLDivElement>(null)
@@ -87,23 +110,7 @@ export default function Chat({ note, seek, quote }: { note: Note; seek: (t: numb
     setMsgs((m) => [...m, { role: 'user', text }, { role: 'assistant', text: '' }])
     const patch = (f: (m: Msg) => Msg) => setMsgs((m) => [...m.slice(0, -1), f(m[m.length - 1])])
     try {
-      const r = await fetch(`/api/notes/${note.id}/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ q: text }) })
-      if (!r.ok || !r.body) throw new Error((await r.json().catch(() => ({}))).detail || '답변을 받지 못했어요')
-      const rd = r.body.getReader(), dec = new TextDecoder()
-      let buf = ''
-      for (;;) {
-        const { done, value } = await rd.read()
-        if (done) break
-        buf += dec.decode(value, { stream: true })
-        const parts = buf.split('\n\n'); buf = parts.pop()!
-        for (const p of parts) {
-          if (!p.startsWith('data:')) continue
-          const o = JSON.parse(p.slice(5))
-          if (o.error) throw new Error(o.error)
-          if (o.done) patch((m) => ({ ...m, text: o.text }))
-          else if (o.t) patch((m) => ({ ...m, text: m.text + o.t }))
-        }
-      }
+      await streamChat(`/api/notes/${note.id}/chat`, text, mode, patch)
     } catch (e) {
       patch((m) => ({ ...m, text: m.text || (e as Error).message, err: true }))
     }
@@ -117,7 +124,7 @@ export default function Chat({ note, seek, quote }: { note: Note; seek: (t: numb
         {msgs.length === 0 ? (
           <>
             <span className="grid place-items-center size-9 rounded-full bg-accent text-black mt-10"><Sparkles size={18} /></span>
-            <p className="mt-4 text-[15px] leading-[1.7]">{ready ? `이 ${kind}에서 궁금한 점을 물어보세요. ${src}에서 근거를 찾아 답해요.` : `노트가 완성되면 ${kind} 내용을 물어볼 수 있어요.`}</p>
+            <p className="mt-4 text-[15px] leading-[1.7]">{ready ? `이 ${kind}에서 궁금한 점을 물어보세요. ${src}에서 근거를 찾아 답해요. 답할 AI와 범위는 입력창 아래 설정에서 바꿔요.` : `노트가 완성되면 ${kind} 내용을 물어볼 수 있어요.`}</p>
             <div className="mt-6 flex flex-col items-end gap-2">
               {sug.map((s) => <button key={s} onClick={() => send(s)} className="max-w-full rounded-xl border border-line px-3.5 py-2 text-[14px] text-right hover:bg-subtle">{s}</button>)}
               {sugErr && <p className="text-[13px] text-muted">{sugErr}</p>}
@@ -145,12 +152,12 @@ export default function Chat({ note, seek, quote }: { note: Note; seek: (t: numb
           <span className={icon} title="다음 단계"><Globe size={16} /></span>
           <button onClick={toggleTime} aria-pressed={time} title="답변의 [시간] 버튼 표시"
             className={`flex items-center gap-1 h-7 px-2 rounded-md text-[12px] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-fg ${time ? 'bg-hl text-link font-semibold' : 'text-muted hover:bg-subtle'}`}><Clock size={14} />시간 표시</button>
-          <span className="ml-auto mr-2 text-[14px] text-muted">일반</span>
+          <span className="ml-auto mr-1"><ModePicker /></span>
           <button onClick={() => send(q)} disabled={!q.trim() || busy || !ready} title="보내기"
             className="grid place-items-center size-7 rounded-full bg-fg text-bg disabled:bg-line disabled:text-muted"><ArrowUp size={15} /></button>
         </div>
       </div>
-      <p className="mb-4 text-center text-[12px] text-muted shrink-0">{kind} {src}을 근거로 답해요</p>
+      <p className="mb-4 text-center text-[12px] text-muted shrink-0"><ModeNote what={kind} /></p>
     </>
   )
 }

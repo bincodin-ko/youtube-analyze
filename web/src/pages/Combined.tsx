@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, Layers, Trash2 } from 'lucide-react'
+import { ArrowLeft, ArrowUp, Layers, Sparkles, Trash2 } from 'lucide-react'
+import { ModeNote, ModePicker, useChatMode } from '../components/ClaudeStatus'
 import Sidebar, { MobileBar } from '../components/Sidebar'
+import { streamChat, type Msg } from '../components/Chat'
 import { ThemeButton } from '../components/ui'
 
 type CNote = { id: string; title: string; channel?: string; kind?: string }
 type Combined = {
   id: string; created_at: string; collection_id: number | null; notes: CNote[]; starts: Record<string, number>
   title: string; overview: string; common: string[]; differences: { note: number; points: string[] }[]
-  table: { columns: string[]; rows: string[][] }; conclusion: string
+  table: { columns: string[]; rows: string[][] }; conclusion: string; messages?: Msg[]
 }
 export type CombinedItem = { id: string; title: string; created_at: string; count: number }
 
@@ -57,10 +59,11 @@ export default function CombinedPage() {
   const [c, setC] = useState<Combined | null>(null)
   const [err, setErr] = useState('')
   useEffect(() => { j<Combined>(`/api/combined/${id}`).then(setC).catch((e) => setErr(e.message)) }, [id])
+  const back = c?.collection_id ? `/collection/${c.collection_id}` : id.startsWith('g') ? '/ask' : '/library'
   const remove = async () => {
-    if (!confirm('이 통합 요약을 삭제할까요? (원래 노트는 그대로 남아요)')) return
+    if (!confirm(`이 ${id.startsWith('g') ? '대화' : '통합 요약'}를 삭제할까요? (원래 노트는 그대로 남아요)`)) return
     await j(`/api/combined/${id}`, { method: 'DELETE' })
-    nav(c?.collection_id ? `/collection/${c.collection_id}` : '/library')
+    nav(back)
   }
   const h2 = 'text-[20px] font-bold mt-14 mb-5'
   return (
@@ -69,7 +72,7 @@ export default function CombinedPage() {
       <div className="flex-1 min-w-0">
         <MobileBar />
         <div className="sticky top-0 z-10 bg-bg flex items-center gap-2 h-12 px-4 md:px-6 border-b border-line text-[14px]">
-          <Link to={c?.collection_id ? `/collection/${c.collection_id}` : '/library'} className="flex items-center gap-1.5 text-soft hover:text-fg"><ArrowLeft size={16} />돌아가기</Link>
+          <Link to={back} className="flex items-center gap-1.5 text-soft hover:text-fg"><ArrowLeft size={16} />돌아가기</Link>
           <div className="ml-auto flex items-center gap-1">
             <button onClick={remove} title="삭제" className="grid place-items-center size-9 rounded-lg hover:bg-subtle text-soft"><Trash2 size={17} /></button>
             <ThemeButton />
@@ -78,7 +81,21 @@ export default function CombinedPage() {
         <main className="max-w-[720px] mx-auto px-5 md:px-8 pb-24">
           {err && <p className="mt-10 text-[15px] text-muted">{err}</p>}
           {!c && !err && <p className="mt-10 text-muted">불러오는 중…</p>}
-          {c && (
+          {c && !c.overview && ( // g…: 통합 요약 없이 노트를 골라 바로 시작한 대화
+            <>
+              <p className="mt-16 flex items-center gap-1.5 text-[13px] text-muted"><Sparkles size={14} />AI와 대화 · 노트 {c.notes.length}개 · {c.created_at.slice(0, 10).replaceAll('-', '. ')}</p>
+              <h1 className="text-[28px] font-bold leading-[1.35] mt-2 mb-4 break-keep">{c.title}</h1>
+              <ol className="space-y-1.5 text-[14px]">
+                {c.notes.map((n, i) => (
+                  <li key={n.id} className="flex gap-2"><span className="text-muted w-5 shrink-0">{i + 1}</span>
+                    <Link to={`/note/${n.id}`} className="hover:underline line-clamp-1">{n.title}</Link></li>
+                ))}
+              </ol>
+              <hr className="border-line my-8" />
+              <CombinedChat c={c} reload={() => j<Combined>(`/api/combined/${id}`).then(setC)} />
+            </>
+          )}
+          {c && c.overview && (
             <>
               <p className="mt-16 flex items-center gap-1.5 text-[13px] text-muted"><Layers size={14} />통합 요약 · 노트 {c.notes.length}개 · {c.created_at.slice(0, 10).replaceAll('-', '. ')}</p>
               <h1 className="text-[32px] font-bold leading-[1.35] mt-2 mb-8 break-keep">{c.title}</h1>
@@ -120,10 +137,58 @@ export default function CombinedPage() {
 
               <h2 className={h2}>종합 결론</h2>
               <p className="text-[16px] leading-[1.85]"><Inline text={c.conclusion} c={c} /></p>
+
+              <h2 className={h2}>이 노트들과 대화</h2>
+              <CombinedChat c={c} reload={() => j<Combined>(`/api/combined/${id}`).then(setC)} />
             </>
           )}
         </main>
       </div>
+    </div>
+  )
+}
+
+// 통합 요약 아래 채팅: 노트들 요약을 근거로 AI와 대화(모드는 입력창 설정). 답이 끝나면 다시 불러와 새 출처 링크 시각(starts)을 받음
+function CombinedChat({ c, reload }: { c: Combined; reload: () => Promise<unknown> }) {
+  const [msgs, setMsgs] = useState<Msg[]>(c.messages ?? [])
+  const [q, setQ] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [mode] = useChatMode()
+  const send = async () => {
+    const text = q.trim()
+    if (!text || busy) return
+    setQ(''); setBusy(true)
+    setMsgs((m) => [...m, { role: 'user', text }, { role: 'assistant', text: '' }])
+    const patch = (f: (m: Msg) => Msg) => setMsgs((m) => [...m.slice(0, -1), f(m[m.length - 1])])
+    try {
+      await streamChat(`/api/combined/${c.id}/chat`, text, mode, patch)
+      await reload()
+    } catch (e) {
+      patch((m) => ({ ...m, text: m.text || (e as Error).message, err: true }))
+    }
+    setBusy(false)
+  }
+  return (
+    <div>
+      {msgs.length === 0 && <p className="text-[15px] text-muted leading-[1.7]">노트 {c.notes.length}개의 요약을 함께 보고 답해요. 비교·연결 질문도 돼요. 답할 AI와 범위는 입력창 아래 설정에서 바꿔요.</p>}
+      {msgs.map((m, i) => m.role === 'user' ? (
+        <p key={i} className="ml-auto mt-4 w-fit max-w-[85%] whitespace-pre-wrap break-words rounded-2xl bg-subtle px-3.5 py-2 text-[15px] leading-[1.6]">{m.text}</p>
+      ) : (
+        <p key={i} className={`mt-4 whitespace-pre-wrap break-words text-[15px] leading-[1.75] ${m.err ? 'text-muted' : ''}`}>
+          {m.text ? <Inline text={m.text} c={c} /> : <span className="text-muted animate-pulse">답변 작성 중…</span>}
+        </p>
+      ))}
+      <div className="mt-5 rounded-xl border border-line p-3">
+        <textarea value={q} rows={2} onChange={(e) => setQ(e.target.value)} placeholder="이 노트들에 대해 물어보세요"
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send() } }}
+          className="w-full resize-none bg-transparent text-fg outline-none text-[15px] leading-[1.6] placeholder:text-muted" />
+        <div className="flex items-center justify-end gap-1">
+          <ModePicker />
+          <button onClick={send} disabled={!q.trim() || busy} title="보내기" aria-label="보내기"
+            className="grid place-items-center size-7 rounded-full bg-fg text-bg disabled:bg-line disabled:text-muted"><ArrowUp size={15} /></button>
+        </div>
+      </div>
+      <p className="mt-2 text-center text-[12px] text-muted"><ModeNote what="노트" /></p>
     </div>
   )
 }
